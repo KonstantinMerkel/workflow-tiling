@@ -1,0 +1,13 @@
+{
+  "name": "workflow-tiling",
+  "version": "1.0.0",
+  "description": "A three-window auto-tiler for GNOME Shell",
+  "main": "extension.js",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.6"
+  }
+}

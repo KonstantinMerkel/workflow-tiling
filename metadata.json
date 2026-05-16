@@ -1,0 +1,15 @@
+{
+  "uuid": "workflow-tiling@konstantin.dev",
+  "name": "Workflow Tiling",
+  "description": "A three-window auto-tiler with deterministic layout escalation.",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "url": "",
+  "gettext-domain": "workflow-tiling"
+}
