@@ -29,6 +29,3 @@ To link the extension to your local GNOME Shell directory:
 ln -s $(pwd) ~/.local/share/gnome-shell/extensions/workflow-tiling@konstantin.dev
 gnome-extensions enable workflow-tiling@konstantin.dev
 ```
-
-## License
-MIT
