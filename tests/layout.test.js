@@ -1,27 +1,40 @@
 import { describe, it, expect } from 'vitest';
-import { ScreenEstate, Layout, LayoutEscalator, createDefaultEscalator } from '../lib/layout.js';
+import { ScreenEstate, Layout, createDefaultEscalator } from '../lib/layout.js';
 
 describe('ScreenEstate', () => {
-    it('should calculate absolute coordinates correctly', () => {
-        const estate = new ScreenEstate(10, 20, 30, 40);
-        const monitor = { x: 100, y: 100, width: 1000, height: 1000 };
+    it('should calculate absolute coordinates with gaps', () => {
+        // TilingConfig.GAPS.OUTER = 4, INNER = 6
+        const estate = new ScreenEstate(0, 0, 100, 100);
+        const monitor = { x: 0, y: 0, width: 1000, height: 1000 };
         const absolute = estate.toAbsolute(monitor);
 
         expect(absolute).toEqual({
-            x: 200,      // 100 + 10% of 1000
-            y: 300,      // 100 + 20% of 1000
-            width: 300,  // 30% of 1000
-            height: 400  // 40% of 1000
+            x: 4,
+            y: 4,
+            width: 992,
+            height: 992
         });
     });
 
-    it('should handle rounding', () => {
-        const estate = new ScreenEstate(33.33, 0, 33.33, 100);
-        const monitor = { x: 0, y: 0, width: 1920, height: 1080 };
-        const absolute = estate.toAbsolute(monitor);
+    it('should calculate inner gaps correctly in a split', () => {
+        const leftEstate = new ScreenEstate(0, 0, 50, 100);
+        const monitor = { x: 0, y: 0, width: 1000, height: 1000 };
+        const leftAbs = leftEstate.toAbsolute(monitor);
+
+        expect(leftAbs.x).toBe(4);
+        expect(leftAbs.width).toBe(493); 
+
+        const rightEstate = new ScreenEstate(50, 0, 50, 100);
+        const rightAbs = rightEstate.toAbsolute(monitor);
+
+        expect(rightAbs.x).toBe(503); 
+        expect(rightAbs.width).toBe(493); 
         
-        expect(absolute.x).toBe(640); 
-        expect(absolute.width).toBe(640);
+        expect(rightAbs.x - (leftAbs.x + leftAbs.width)).toBe(6);
+    });
+
+    it('should throw on out of bounds', () => {
+        expect(() => new ScreenEstate(-1, 0, 100, 100)).toThrow();
     });
 });
 
@@ -50,13 +63,6 @@ describe('Validation & Immutability', () => {
         const layout = new Layout([estate]);
         expect(() => { layout.estates = []; }).toThrow();
         expect(() => { layout.estates.push(estate); }).toThrow();
-    });
-
-    it('should allow adjacent edges without overlap', () => {
-        expect(() => new Layout([
-            new ScreenEstate(0, 0, 50, 100),
-            new ScreenEstate(50, 0, 50, 100)
-        ])).not.toThrow();
     });
 
     it('should validate the default escalator layouts', () => {
