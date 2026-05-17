@@ -13,6 +13,7 @@ export default class WorkflowTilingExtension extends Extension {
     disable() {
         console.log(`Disabling ${this.metadata.name}`);
         this._signals.unbind();
+        this._controller.clear();
         this._signals = null;
         this._controller = null;
     }
