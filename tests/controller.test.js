@@ -13,7 +13,7 @@ describe('TilingController', () => {
         unmaximize: vi.fn(),
         maximized_horizontally: false,
         maximized_vertically: false,
-        connect: vi.fn(() => 1),
+        connect: vi.fn(() => 123),
         disconnect: vi.fn(),
         handler_is_connected: vi.fn(() => true)
     });
