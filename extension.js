@@ -8,6 +8,7 @@ export default class WorkflowTilingExtension extends Extension {
         console.log(`Enabling ${this.metadata.name}`);
         this._controller = new TilingController();
         this._settings = new SettingsManager(this, () => this._controller.retileAll());
+        this._controller.initializeMonitorState();
         this._signals = new SignalListener(this._controller);
         this._signals.bind();
     }
