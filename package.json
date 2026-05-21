@@ -8,6 +8,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.6",
     "vitest": "^4.1.6"
   }
 }

@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 *.log
 extension.zip
+GEMINI.md
+coverage/

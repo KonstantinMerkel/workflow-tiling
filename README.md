@@ -1,12 +1,12 @@
 # Workflow Tiling
 
-A deterministic three-window auto-tiler extension for GNOME Shell (GNOME 45+).
+A deterministic three-window auto-tiler extension for GNOME Shell (GNOME 50+).
 
 ## Features
 - **Deterministic Escalation**: Automatically tiles windows in a fixed 1-2-3 sequence.
 - **Multi-Monitor Support**: Each monitor tiles independently.
 - **Workspace Isolation**: Tiling states are unique to each GNOME workspace.
-- **Stability Focused**: Uses metadata caching and debounced retiling to prevent Shell crashes.
+- **Stability Focused**: Uses WindowWrapper object modeling and compositor-native synchronization (Meta.LaterType) to prevent race conditions and Shell crashes.
 
 ## Tiling Layouts
 1. **1 Window**: Full Screen (100%).
