@@ -373,5 +373,48 @@ describe('TilingController', () => {
         expect(() => controller.handleMonitorsChanged()).not.toThrow();
         expect(controller._monitorsChangedPending).toBe(false);
     });
+
+    it('should hydrate with active workspace', () => {
+        const ws = { id: 'ws1', list_windows: vi.fn(() => []), get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+        const win = createMockWindow(1, ws, 0);
+        ws.list_windows.mockReturnValue([win]);
+        
+        vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
+        
+        vi.spyOn(controller, 'tilingRequest');
+        controller.hydrate();
+        
+        expect(controller.tilingRequest).toHaveBeenCalledWith(win);
+    });
+
+    it('should hydrate including restoring windows', () => {
+        const ws = { id: 'ws1', list_windows: vi.fn(() => []), get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+        const win1 = createMockWindow(1, ws, 0); // Active workspace
+        const win2 = createMockWindow(2, ws, 0); // Evacuated/Restoring
+        
+        ws.list_windows.mockReturnValue([win1]);
+        controller._restoringWindows.add(win2);
+        vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
+        
+        vi.spyOn(controller, 'tilingRequest');
+        controller.hydrate();
+        
+        expect(controller.tilingRequest).toHaveBeenCalledWith(win1);
+        expect(controller.tilingRequest).toHaveBeenCalledWith(win2);
+    });
+
+    it('should hydrate ignoring unmanaged windows', () => {
+        const ws = { id: 'ws1', list_windows: vi.fn(() => []), get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+        const win = createMockWindow(1, ws, 0);
+        win.unmanaged = true;
+        ws.list_windows.mockReturnValue([win]);
+        
+        vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
+        
+        vi.spyOn(controller, 'tilingRequest');
+        controller.hydrate();
+        
+        expect(controller.tilingRequest).not.toHaveBeenCalledWith(win);
+    });
 });
 
