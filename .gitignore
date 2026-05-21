@@ -3,3 +3,4 @@ node_modules/
 *.log
 extension.zip
 GEMINI.md
+coverage/
