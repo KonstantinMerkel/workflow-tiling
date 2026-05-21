@@ -7,9 +7,9 @@ describe('TilingController', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         const manager = Meta.Backend.get_monitor_manager();
-        vi.mocked(manager.get_monitors).mockReturnValue([
-            { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' },
-            { get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] },
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }] }
         ]);
         vi.mocked(manager.get_primary_monitor).mockReturnValue(0);
         
@@ -160,8 +160,8 @@ describe('TilingController', () => {
         
         // Mock monitor removal: only monitor-0 remains
         const manager = Meta.Backend.get_monitor_manager();
-        vi.mocked(manager.get_monitors).mockReturnValue([
-            { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] }
         ]);
         vi.mocked(manager.get_primary_monitor).mockReturnValue(0);
 
@@ -203,8 +203,8 @@ describe('TilingController', () => {
         
         // Remove monitor-1
         const manager = Meta.Backend.get_monitor_manager();
-        vi.mocked(manager.get_monitors).mockReturnValue([
-            { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] }
         ]);
         vi.mocked(win.get_monitor).mockReturnValue(0);
 
@@ -234,8 +234,8 @@ describe('TilingController', () => {
         
         // Remove monitor-1
         const manager = Meta.Backend.get_monitor_manager();
-        vi.mocked(manager.get_monitors).mockReturnValue([
-            { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] }
         ]);
         vi.mocked(win.get_monitor).mockReturnValue(0);
         controller.tilingRequest(win);
@@ -247,9 +247,9 @@ describe('TilingController', () => {
         controller.handleMonitorsChanged();
 
         // Re-plug monitor-1 (at index 1)
-        vi.mocked(manager.get_monitors).mockReturnValue([
-            { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' },
-            { get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] },
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }] }
         ]);
 
         // Restore get_monitor to reflect move_to_monitor updates
@@ -293,9 +293,9 @@ describe('TilingController', () => {
 
         // Mock index shift: monitor-1 becomes index 0, monitor-0 becomes index 1
         const manager = Meta.Backend.get_monitor_manager();
-        vi.mocked(manager.get_monitors).mockReturnValue([
-            { get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' },
-            { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }] },
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] }
         ]);
 
         // When win.get_monitor() is called, it should now return 0 because monitor-1 is at index 0
@@ -356,7 +356,7 @@ describe('TilingController', () => {
 
     it('should gracefully handle errors during monitor initialization', () => {
         const manager = Meta.Backend.get_monitor_manager();
-        vi.mocked(manager.get_monitors).mockImplementation(() => {
+        vi.mocked(manager.get_logical_monitors).mockImplementation(() => {
             throw new Error('init error');
         });
         
@@ -366,7 +366,7 @@ describe('TilingController', () => {
 
     it('should gracefully handle handleMonitorsChanged failures', () => {
         const manager = Meta.Backend.get_monitor_manager();
-        vi.mocked(manager.get_monitors).mockImplementation(() => {
+        vi.mocked(manager.get_logical_monitors).mockImplementation(() => {
             throw new Error('hotplug error');
         });
         

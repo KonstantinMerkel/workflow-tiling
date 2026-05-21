@@ -23,6 +23,10 @@ const mockMonitorManager = {
         { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' },
         { get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }
     ]),
+    get_logical_monitors: vi.fn(() => [
+        { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] },
+        { get_monitors: () => [{ get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }] }
+    ]),
     get_primary_monitor: vi.fn(() => 0),
     connect: vi.fn(() => 1),
     disconnect: vi.fn(),
