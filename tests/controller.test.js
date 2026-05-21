@@ -12,7 +12,10 @@ describe('TilingController', () => {
         get_title: () => `Window ${id}`,
         unmaximize: vi.fn(),
         maximized_horizontally: false,
-        maximized_vertically: false
+        maximized_vertically: false,
+        connect: vi.fn(() => 1),
+        disconnect: vi.fn(),
+        handler_is_connected: vi.fn(() => true)
     });
 
     it('should register a window and request retile', () => {

@@ -11,5 +11,6 @@
     "50"
   ],
   "url": "",
-  "gettext-domain": "workflow-tiling"
+  "gettext-domain": "workflow-tiling",
+  "settings-schema": "org.gnome.shell.extensions.workflow-tiling"
 }

@@ -11,6 +11,7 @@ vi.mock('gi://GLib', () => ({
             callback(); // Execute immediately in tests
             return 1;
         }),
+        source_remove: vi.fn(),
         SOURCE_REMOVE: false,
         PRIORITY_DEFAULT: 0,
         PRIORITY_DEFAULT_IDLE: 0
