@@ -15,8 +15,8 @@ The layout transitions should be predictable and minimal. The extension maintain
 
 ### Robustness & Stability
 -   **Immutability**: Core data structures (`ScreenEstate`, `Layout`, `LayoutEscalator`) are strictly immutable and self-validating.
--   **Lifecycle Protection**: Window manipulations use `GLib.idle_add` and `timeout_add` to handle Mutter's volatile window lifecycle safely.
--   **Metadata Caching**: Critical window information (workspace, monitor) is cached during creation to allow safe re-tiling during window destruction.
+-   **Lifecycle Protection**: Window manipulations use `Meta.LaterType.BEFORE_REDRAW` (Compositor Laters) to synchronize with Mutter's rendering pipeline and avoid race conditions.
+-   **WindowWrapper Pattern**: Native Mutter window APIs and signal lifecycles are decoupled into wrapper objects, tracking logical placement safely during animations and destruction.
 -   **Error Shielding**: Every Mutter API interaction is wrapped in defensive checks and error handling to prevent Shell crashes.
 
 ### Scaling & Isolation
@@ -24,7 +24,5 @@ The layout transitions should be predictable and minimal. The extension maintain
 -   **Workspace Isolation**: Tiling is scoped per GNOME workspace.
 
 ## Future Roadmap
-1.  Gap support (configurable spacing between windows).
-2.  Custom layout creation via configuration.
-3.  Keyboard and mouse shortcuts for manual re-ordering.
-4.  Improved monitor hotplug handling.
+1.  Custom layout creation via configuration.
+2.  Keyboard and mouse shortcuts for manual re-ordering.

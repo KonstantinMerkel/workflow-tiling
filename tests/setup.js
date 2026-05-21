@@ -41,9 +41,21 @@ global.workspace_manager = {
         list_windows: vi.fn(() => [])
     }))
 };
+global.compositor = {
+    get_laters: vi.fn(() => ({
+        add: vi.fn((type, callback) => {
+            callback();
+            return 1;
+        }),
+        remove: vi.fn()
+    }))
+};
 
 vi.mock('gi://Meta', () => ({
     default: {
+        LaterType: {
+            BEFORE_REDRAW: 1
+        },
         MaximizeFlags: {
             BOTH: 3,
             NONE: 0

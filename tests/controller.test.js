@@ -49,7 +49,7 @@ describe('TilingController', () => {
 
         controller.tilingRequest(win);
         // We verify it doesn't crash and caches the window.
-        expect(controller._windowMetaCache.has(win)).toBe(true);
+        expect(controller._windowWrappers.has(win)).toBe(true);
     });
 
     it('should untile window when minimized', () => {
@@ -156,7 +156,7 @@ describe('TilingController', () => {
         const win = createMockWindow(1, ws, 1);
 
         controller.tilingRequest(win);
-        expect(controller._windowMetaCache.get(win).monitorId).toBe('monitor-1');
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
         
         // Mock monitor removal: only monitor-0 remains
         const manager = Meta.Backend.get_monitor_manager();
@@ -178,17 +178,17 @@ describe('TilingController', () => {
         expect(controller._evacuatedWindows.get(win).monitorId).toBe('monitor-1');
         
         // Metadata should have been updated to the new monitor
-        expect(controller._windowMetaCache.get(win).monitorId).toBe('monitor-0');
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-0');
 
         // Finalize change via signal
-        controller._handleMonitorsChanged();
+        controller.handleMonitorsChanged();
         expect(controller._batchMode).toBe(false);
 
         // Simulate signal firing when window is minimized/moved (after hydration or during)
         controller.tilingRequest(win);
 
-        expect(controller._windowMetaCache.get(win).monitorId).toBe('monitor-0');
-        expect(controller._windowMetaCache.get(win).monitorIndex).toBe(0);
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-0');
+        expect(controller._windowWrappers.get(win).monitorIndex).toBe(0);
         expect(win.minimized).toBe(true);
     });
 
@@ -230,7 +230,7 @@ describe('TilingController', () => {
         vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
 
         controller.tilingRequest(win);
-        expect(controller._windowMetaCache.get(win).monitorId).toBe('monitor-1');
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
         
         // Remove monitor-1
         const manager = Meta.Backend.get_monitor_manager();
@@ -244,7 +244,7 @@ describe('TilingController', () => {
         expect(win.minimized).toBe(true);
 
         // Process topology change for removal (updates _lastMonitorCount to 1)
-        controller._handleMonitorsChanged();
+        controller.handleMonitorsChanged();
 
         // Re-plug monitor-1 (at index 1)
         vi.mocked(manager.get_monitors).mockReturnValue([
@@ -257,7 +257,7 @@ describe('TilingController', () => {
         win.get_monitor = vi.fn(() => win._monitor ?? 0);
         win.move_to_monitor = vi.fn((m) => { win._monitor = m; });
 
-        controller._handleMonitorsChanged();
+        controller.handleMonitorsChanged();
 
         // unminimize called, but minimized stays true (async)
         expect(win.unminimize).toHaveBeenCalled();
@@ -267,8 +267,8 @@ describe('TilingController', () => {
         expect(controller._evacuatedWindows.size).toBe(0);
 
         // Meta cache updated to restored monitor
-        expect(controller._windowMetaCache.get(win).monitorId).toBe('monitor-1');
-        expect(controller._windowMetaCache.get(win).monitorIndex).toBe(1);
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
+        expect(controller._windowWrappers.get(win).monitorIndex).toBe(1);
 
         // Window tracked in grid despite minimized=true (restoring bypass)
         const grid = controller.getWorkspaceGrid(ws);
@@ -288,8 +288,8 @@ describe('TilingController', () => {
         vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
 
         controller.tilingRequest(win);
-        expect(controller._windowMetaCache.get(win).monitorIndex).toBe(1);
-        expect(controller._windowMetaCache.get(win).monitorId).toBe('monitor-1');
+        expect(controller._windowWrappers.get(win).monitorIndex).toBe(1);
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
 
         // Mock index shift: monitor-1 becomes index 0, monitor-0 becomes index 1
         const manager = Meta.Backend.get_monitor_manager();
@@ -302,11 +302,11 @@ describe('TilingController', () => {
         vi.mocked(win.get_monitor).mockReturnValue(0);
 
         // In this case, monitorId ('monitor-1') STILL EXISTS, so it's NOT an evacuation.
-        // It's just an index shift. _handleMonitorsChanged will trigger hydration.
-        controller._handleMonitorsChanged();
+        // It's just an index shift. handleMonitorsChanged will trigger hydration.
+        controller.handleMonitorsChanged();
 
-        expect(controller._windowMetaCache.get(win).monitorIndex).toBe(0);
-        expect(controller._windowMetaCache.get(win).monitorId).toBe('monitor-1');
+        expect(controller._windowWrappers.get(win).monitorIndex).toBe(0);
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
         expect(win.minimize).not.toHaveBeenCalled();
     });
 });

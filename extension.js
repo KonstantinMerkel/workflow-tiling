@@ -2,10 +2,11 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { TilingController } from './lib/controller.js';
 import { SignalListener } from './lib/signals.js';
 import { SettingsManager } from './lib/settings.js';
+import { Logger } from './lib/logger.js';
 
 export default class WorkflowTilingExtension extends Extension {
     enable() {
-        console.log(`Enabling ${this.metadata.name}`);
+        Logger.info(`Enabling ${this.metadata.name}`);
         this._controller = new TilingController();
         this._settings = new SettingsManager(this, () => this._controller.retileAll());
         this._controller.initializeMonitorState();
@@ -14,7 +15,7 @@ export default class WorkflowTilingExtension extends Extension {
     }
 
     disable() {
-        console.log(`Disabling ${this.metadata.name}`);
+        Logger.info(`Disabling ${this.metadata.name}`);
         this._signals.unbind();
         this._settings.destroy();
         this._controller.clear();
