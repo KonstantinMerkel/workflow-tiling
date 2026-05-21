@@ -309,4 +309,69 @@ describe('TilingController', () => {
         expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
         expect(win.minimize).not.toHaveBeenCalled();
     });
+
+    it('should clear all resources and timeouts', () => {
+        const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+        const win = createMockWindow(1, ws, 0);
+        
+        controller.tilingRequest(win);
+        controller._batchMode = true;
+        controller._monitorsChangedPending = true;
+        
+        controller.clear();
+        
+        expect(controller._windowWrappers.size).toBe(0);
+        expect(controller.workspaceGrids.size).toBe(0);
+        expect(controller._retileTimeouts.size).toBe(0);
+        expect(controller._evacuatedWindows.size).toBe(0);
+        expect(controller._restoringWindows.size).toBe(0);
+        expect(controller._monitorsChangedPending).toBe(false);
+    });
+
+    it('should gracefully handle errors in tilingRequest', () => {
+        const win = createMockWindow(1, null, 0);
+        // Force an error by mocking global.workspace_manager to throw
+        vi.mocked(global.workspace_manager.get_active_workspace).mockImplementation(() => {
+            throw new Error('test error');
+        });
+        
+        // Should not throw, should be caught
+        expect(() => controller.tilingRequest(win)).not.toThrow();
+    });
+
+    it('should gracefully handle errors in untile', () => {
+        const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+        const win = createMockWindow(1, ws, 0);
+        controller.tilingRequest(win);
+        
+        // Sabotage the workspace to throw on untrack
+        vi.spyOn(controller, 'getWorkspaceGrid').mockImplementation(() => {
+            throw new Error('test error');
+        });
+        
+        // Should not throw
+        expect(() => controller.untile(win)).not.toThrow();
+        expect(controller._windowWrappers.has(win)).toBe(false);
+    });
+
+    it('should gracefully handle errors during monitor initialization', () => {
+        const manager = Meta.Backend.get_monitor_manager();
+        vi.mocked(manager.get_monitors).mockImplementation(() => {
+            throw new Error('init error');
+        });
+        
+        const newController = new TilingController();
+        expect(() => newController.initializeMonitorState()).not.toThrow();
+    });
+
+    it('should gracefully handle handleMonitorsChanged failures', () => {
+        const manager = Meta.Backend.get_monitor_manager();
+        vi.mocked(manager.get_monitors).mockImplementation(() => {
+            throw new Error('hotplug error');
+        });
+        
+        expect(() => controller.handleMonitorsChanged()).not.toThrow();
+        expect(controller._monitorsChangedPending).toBe(false);
+    });
 });
+
