@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.workflow-tiling" path="/org/gnome/shell/extensions/workflow-tiling/">
+    <key name="enable-gaps" type="b">
+      <default>true</default>
+      <summary>Enable Gaps</summary>
+      <description>Toggle gaps on or off globally.</description>
+    </key>
+    <key name="inner-gaps" type="i">
+      <default>6</default>
+      <summary>Inner Gaps</summary>
+      <description>Gap size between tiled windows.</description>
+    </key>
+    <key name="outer-gaps" type="i">
+      <default>4</default>
+      <summary>Outer Gaps</summary>
+      <description>Gap size between windows and screen edges.</description>
+    </key>
+  </schema>
+</schemalist>
