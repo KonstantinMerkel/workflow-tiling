@@ -107,3 +107,14 @@ vi.mock('gi://Meta', () => ({
         }))
     }
 }));
+
+vi.mock('gi://Shell', () => ({
+    default: {}
+}));
+
+vi.mock('resource:///org/gnome/shell/ui/main.js', () => ({
+    wm: {
+        addKeybinding: vi.fn(),
+        removeKeybinding: vi.fn()
+    }
+}));

@@ -59,7 +59,7 @@ describe('WindowWrapper', () => {
         });
 
         const wrapper = new WindowWrapper(mockWindow, mockController);
-        wrapper.bindOneShotSizeChanged();
+        wrapper.bindSizeChanged();
         
         expect(mockWindow.connect).toHaveBeenCalledWith('size-changed', expect.any(Function));
         
@@ -72,7 +72,7 @@ describe('WindowWrapper', () => {
     it('should destroy and disconnect all signals', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.bindSignals();
-        wrapper.bindOneShotSizeChanged();
+        wrapper.bindSizeChanged();
         
         wrapper.destroy();
         expect(mockWindow.disconnect).toHaveBeenCalledTimes(4);

@@ -26,4 +26,5 @@ The layout transitions should be predictable and minimal. The extension maintain
 ## Future Roadmap
 1.  Custom layout creation via configuration.
 2.  Keyboard and mouse shortcuts for manual re-ordering.
-3. Active window boarder, for now just use an extension like focus on active window/ P7 Boarder
+3.  Active window boarder, for now just use an extension like focus on active window/ P7 Boarder.
+4.  Implement type safety (JSDoc + `@girs` types and `jsconfig.json`).

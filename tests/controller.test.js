@@ -416,5 +416,86 @@ describe('TilingController', () => {
         
         expect(controller.tilingRequest).not.toHaveBeenCalledWith(win);
     });
+
+    describe('moveWindowDirection', () => {
+        it('should delegate to grid and schedule retile if moved', () => {
+            const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+            const win = createMockWindow(1, ws, 0);
+            controller.tilingRequest(win);
+
+            const grid = controller.getWorkspaceGrid(ws);
+            vi.spyOn(grid, 'moveWindowDirection').mockReturnValue(true);
+            vi.spyOn(controller, '_scheduleRetile');
+
+            controller.moveWindowDirection(win, 'left');
+
+            expect(grid.moveWindowDirection).toHaveBeenCalledWith('monitor-0', win, 'left');
+            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
+        });
+
+        it('should do nothing if window is untracked', () => {
+            const win = createMockWindow(1, null, 0);
+            vi.spyOn(controller, '_scheduleRetile');
+            controller.moveWindowDirection(win, 'left');
+            expect(controller._scheduleRetile).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Drag Tracking', () => {
+        it('should create indicator and bind position-changed on startDragTracking', () => {
+            const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+            const win = createMockWindow(1, ws, 0);
+            controller.tilingRequest(win);
+
+            controller.dragManager.startDragTracking(win);
+
+            expect(controller.dragManager._activeDrag).toBeDefined();
+            expect(controller.dragManager._activeDrag.window).toBe(win);
+            expect(controller.dragManager._activeDrag.indicator).toBeDefined();
+            expect(win.connect).toHaveBeenCalledWith('position-changed', expect.any(Function));
+        });
+
+        it('should remove indicator and call swapWindowByPointer on endDragTracking', () => {
+            const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+            const win = createMockWindow(1, ws, 0);
+            controller.tilingRequest(win);
+            controller.dragManager.startDragTracking(win);
+
+            const indicator = controller.dragManager._activeDrag.indicator;
+            vi.spyOn(indicator, 'destroy');
+            const grid = controller.getWorkspaceGrid(ws);
+            vi.spyOn(grid, 'swapWindowByPointer').mockReturnValue(true);
+            vi.spyOn(controller, '_scheduleRetile');
+
+            controller.dragManager.endDragTracking(win);
+
+            expect(win.disconnect).toHaveBeenCalledWith(123);
+            expect(indicator.destroy).toHaveBeenCalled();
+            expect(controller.dragManager._activeDrag).toBeNull();
+            expect(grid.swapWindowByPointer).toHaveBeenCalledWith('monitor-0', win, expect.any(Number), expect.any(Number), expect.any(Object), expect.any(Object));
+            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
+        });
+
+        it('should handle position-changed and update indicator', () => {
+            const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+            const win = createMockWindow(1, ws, 0);
+            controller.tilingRequest(win);
+
+            let posChangedCb;
+            win.connect = vi.fn((event, cb) => {
+                if (event === 'position-changed') posChangedCb = cb;
+                return 123;
+            });
+
+            controller.dragManager.startDragTracking(win);
+            expect(posChangedCb).toBeDefined();
+            
+            global.get_pointer = vi.fn(() => [500, 500]);
+            const grid = controller.getWorkspaceGrid(ws);
+            vi.spyOn(grid, 'getSlotAtPointer').mockReturnValue(0);
+
+            expect(() => posChangedCb()).not.toThrow();
+        });
+    });
 });
 
