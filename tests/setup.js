@@ -27,6 +27,8 @@ vi.mock('gi://St', () => ({
             show() {}
             hide() {}
             destroy() {}
+            add_child() {}
+            remove_child() {}
         }
     }
 }));
