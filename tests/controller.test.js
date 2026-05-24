@@ -17,7 +17,7 @@ describe('TilingController', () => {
         global.display.get_primary_monitor = () => manager.get_primary_monitor();
 
         controller = new TilingController();
-        controller.initializeMonitorState();
+        controller.monitorManager.initializeMonitorState();
     });
 
     const createMockWindow = (id, workspace, initialMonitor) => {
@@ -174,14 +174,14 @@ describe('TilingController', () => {
         expect(controller._batchMode).toBe(true);
         
         // Window tracked for restoration (keyed by window reference)
-        expect(controller._evacuatedWindows.has(win)).toBe(true);
-        expect(controller._evacuatedWindows.get(win).monitorId).toBe('monitor-1');
+        expect(controller.monitorManager._evacuatedWindows.has(win)).toBe(true);
+        expect(controller.monitorManager._evacuatedWindows.get(win).monitorId).toBe('monitor-1');
         
         // Metadata should have been updated to the new monitor
         expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-0');
 
         // Finalize change via signal
-        controller.handleMonitorsChanged();
+        controller.monitorManager.handleMonitorsChanged();
         expect(controller._batchMode).toBe(false);
 
         // Simulate signal firing when window is minimized/moved (after hydration or during)
@@ -244,7 +244,7 @@ describe('TilingController', () => {
         expect(win.minimized).toBe(true);
 
         // Process topology change for removal (updates _lastMonitorCount to 1)
-        controller.handleMonitorsChanged();
+        controller.monitorManager.handleMonitorsChanged();
 
         // Re-plug monitor-1 (at index 1)
         vi.mocked(manager.get_logical_monitors).mockReturnValue([
@@ -257,14 +257,14 @@ describe('TilingController', () => {
         win.get_monitor = vi.fn(() => win._monitor ?? 0);
         win.move_to_monitor = vi.fn((m) => { win._monitor = m; });
 
-        controller.handleMonitorsChanged();
+        controller.monitorManager.handleMonitorsChanged();
 
         // unminimize called, but minimized stays true (async)
         expect(win.unminimize).toHaveBeenCalled();
         expect(win.minimized).toBe(true); // still true — GNOME hasn't processed yet
         
         // Evacuation map cleaned
-        expect(controller._evacuatedWindows.size).toBe(0);
+        expect(controller.monitorManager._evacuatedWindows.size).toBe(0);
 
         // Meta cache updated to restored monitor
         expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
@@ -303,7 +303,7 @@ describe('TilingController', () => {
 
         // In this case, monitorId ('monitor-1') STILL EXISTS, so it's NOT an evacuation.
         // It's just an index shift. handleMonitorsChanged will trigger hydration.
-        controller.handleMonitorsChanged();
+        controller.monitorManager.handleMonitorsChanged();
 
         expect(controller._windowWrappers.get(win).monitorIndex).toBe(0);
         expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
@@ -316,16 +316,16 @@ describe('TilingController', () => {
         
         controller.tilingRequest(win);
         controller._batchMode = true;
-        controller._monitorsChangedPending = true;
+        controller.monitorManager._monitorsChangedPending = true;
         
         controller.clear();
         
         expect(controller._windowWrappers.size).toBe(0);
         expect(controller.workspaceGrids.size).toBe(0);
         expect(controller._retileTimeouts.size).toBe(0);
-        expect(controller._evacuatedWindows.size).toBe(0);
+        expect(controller.monitorManager._evacuatedWindows.size).toBe(0);
         expect(controller._restoringWindows.size).toBe(0);
-        expect(controller._monitorsChangedPending).toBe(false);
+        expect(controller.monitorManager._monitorsChangedPending).toBe(false);
     });
 
     it('should gracefully handle errors in tilingRequest', () => {
@@ -361,7 +361,7 @@ describe('TilingController', () => {
         });
         
         const newController = new TilingController();
-        expect(() => newController.initializeMonitorState()).not.toThrow();
+        expect(() => newController.monitorManager.initializeMonitorState()).not.toThrow();
     });
 
     it('should gracefully handle handleMonitorsChanged failures', () => {
@@ -370,8 +370,8 @@ describe('TilingController', () => {
             throw new Error('hotplug error');
         });
         
-        expect(() => controller.handleMonitorsChanged()).not.toThrow();
-        expect(controller._monitorsChangedPending).toBe(false);
+        expect(() => controller.monitorManager.handleMonitorsChanged()).not.toThrow();
+        expect(controller.monitorManager._monitorsChangedPending).toBe(false);
     });
 
     it('should hydrate with active workspace', () => {
