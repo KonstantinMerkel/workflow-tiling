@@ -7,9 +7,9 @@ import { Logger } from './lib/logger.js';
 export default class WorkflowTilingExtension extends Extension {
     enable() {
         Logger.info(`Enabling ${this.metadata.name}`);
-        this._controller = new TilingController();
-        this._settings = new SettingsManager(this, () => this._controller.retileAll());
-        this._controller.initializeMonitorState();
+        this._settings = new SettingsManager(this);
+        this._controller = new TilingController(this._settings);
+        this._settings.onSettingsChanged = () => this._controller.retileAll();
         this._signals = new SignalListener(this._controller);
         this._signals.bind();
     }
