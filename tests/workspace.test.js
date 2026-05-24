@@ -80,4 +80,129 @@ describe('WorkspaceGrid', () => {
         expect(grid.getRetileOperations(0, monitorRect).length).toBe(1);
         expect(grid.getRetileOperations(1, monitorRect).length).toBe(2);
     });
+
+    describe('moveWindowDirection', () => {
+        it('should correctly swap windows left/right with 2 windows', () => {
+            const grid = new WorkspaceGrid({}, escalator);
+            const w1 = { id: 1 };
+            const w2 = { id: 2 };
+            grid.trackWindow(w1, 0);
+            grid.trackWindow(w2, 0);
+
+            // initially w1 is slot 0, w2 is slot 1
+            const moved = grid.moveWindowDirection(0, w1, 'right');
+            expect(moved).toBe(true);
+
+            const tracker = grid._getTracker(0);
+            expect(tracker.getSlot(w1)).toBe(1);
+            expect(tracker.getSlot(w2)).toBe(0);
+
+            const ops = grid.getRetileOperations(0, monitorRect);
+            expect(ops.find(o => o.window === w1).rect.x).toBeGreaterThan(0);
+        });
+
+        it('should correctly prioritize older windows when moving left/right in 3-window layout', () => {
+            const grid = new WorkspaceGrid({}, escalator);
+            const w1 = { id: 1 }; // left
+            const w2 = { id: 2 }; // top right
+            const w3 = { id: 3 }; // bottom right
+
+            grid.trackWindow(w1, 0);
+            grid.trackWindow(w2, 0);
+            grid.trackWindow(w3, 0);
+
+            // moving right from w1 (slot 0) should target w2 (slot 1), not w3
+            grid.moveWindowDirection(0, w1, 'right');
+
+            const tracker = grid._getTracker(0);
+            expect(tracker.getSlot(w1)).toBe(1); // w1 moved to top right
+            expect(tracker.getSlot(w2)).toBe(0); // w2 moved to left
+            expect(tracker.getSlot(w3)).toBe(2); // w3 stayed bottom right
+        });
+
+        it('should swap up/down in 3-window layout', () => {
+            const grid = new WorkspaceGrid({}, escalator);
+            const w1 = { id: 1 }; // left
+            const w2 = { id: 2 }; // top right
+            const w3 = { id: 3 }; // bottom right
+
+            grid.trackWindow(w1, 0);
+            grid.trackWindow(w2, 0);
+            grid.trackWindow(w3, 0);
+
+            // moving down from w2 (slot 1) should target w3 (slot 2)
+            grid.moveWindowDirection(0, w2, 'down');
+
+            const tracker = grid._getTracker(0);
+            expect(tracker.getSlot(w2)).toBe(2); // w2 moved to bottom right
+            expect(tracker.getSlot(w3)).toBe(1); // w3 moved to top right
+        });
+
+        it('should not move if no window in that direction', () => {
+            const grid = new WorkspaceGrid({}, escalator);
+            const w1 = { id: 1 }; // left
+            const w2 = { id: 2 }; // right
+
+            grid.trackWindow(w1, 0);
+            grid.trackWindow(w2, 0);
+
+            const moved = grid.moveWindowDirection(0, w1, 'left');
+            expect(moved).toBe(false);
+
+            const tracker = grid._getTracker(0);
+            expect(tracker.getSlot(w1)).toBe(0);
+        });
+    });
+
+    describe('swapWindowByPointer', () => {
+        const gaps = { inner: 0, outer: 0 }; // no gaps for simpler math
+        const mockRect = { x: 0, y: 0, width: 1000, height: 1000 };
+
+        it('should swap windows if center is dropped over another window', () => {
+            const grid = new WorkspaceGrid({}, escalator);
+            const w1 = { id: 1, get_frame_rect: () => ({ x: 700, y: 100, width: 100, height: 100 }) }; // dropped center at (750, 150), which is in the right half
+            const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
+
+            grid.trackWindow(w1, 0);
+            grid.trackWindow(w2, 0);
+
+            // simulate w1 dragged and dropped in the right half (w2's estate)
+            const swapped = grid.swapWindowByPointer(0, w1, mockRect, gaps);
+            expect(swapped).toBe(true);
+
+            const tracker = grid._getTracker(0);
+            expect(tracker.getSlot(w1)).toBe(1);
+            expect(tracker.getSlot(w2)).toBe(0);
+        });
+
+        it('should not swap if dropped outside of any other window', () => {
+            const grid = new WorkspaceGrid({}, escalator);
+            // Dropped way off screen (e.g. invalid drag or over a panel)
+            const w1 = { id: 1, get_frame_rect: () => ({ x: 2000, y: 2000, width: 100, height: 100 }) };
+            const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
+
+            grid.trackWindow(w1, 0);
+            grid.trackWindow(w2, 0);
+
+            const swapped = grid.swapWindowByPointer(0, w1, mockRect, gaps);
+            expect(swapped).toBe(false);
+
+            const tracker = grid._getTracker(0);
+            expect(tracker.getSlot(w1)).toBe(0);
+            expect(tracker.getSlot(w2)).toBe(1);
+        });
+
+        it('should not swap with itself if dropped in its own original area', () => {
+            const grid = new WorkspaceGrid({}, escalator);
+            // Dropped in the left half (its own area in 2-window layout)
+            const w1 = { id: 1, get_frame_rect: () => ({ x: 100, y: 100, width: 100, height: 100 }) };
+            const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
+
+            grid.trackWindow(w1, 0);
+            grid.trackWindow(w2, 0);
+
+            const swapped = grid.swapWindowByPointer(0, w1, mockRect, gaps);
+            expect(swapped).toBe(false);
+        });
+    });
 });

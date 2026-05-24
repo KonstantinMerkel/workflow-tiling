@@ -44,6 +44,24 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         group.add(outerGapsRow);
 
         page.add(group);
+
+        const keysGroup = new Adw.PreferencesGroup({
+            title: 'Keybindings',
+            description: 'You can customize these shortcuts in dconf-editor under org.gnome.shell.extensions.workflow-tiling or via GNOME Settings if supported.'
+        });
+
+        const leftRow = new Adw.ActionRow({ title: 'Move Window Left', subtitle: settings.get_strv('move-window-left').join(', ') || 'Disabled' });
+        const rightRow = new Adw.ActionRow({ title: 'Move Window Right', subtitle: settings.get_strv('move-window-right').join(', ') || 'Disabled' });
+        const upRow = new Adw.ActionRow({ title: 'Move Window Up', subtitle: settings.get_strv('move-window-up').join(', ') || 'Disabled' });
+        const downRow = new Adw.ActionRow({ title: 'Move Window Down', subtitle: settings.get_strv('move-window-down').join(', ') || 'Disabled' });
+        
+        keysGroup.add(leftRow);
+        keysGroup.add(rightRow);
+        keysGroup.add(upRow);
+        keysGroup.add(downRow);
+
+        page.add(keysGroup);
+
         window.add(page);
     }
 }
