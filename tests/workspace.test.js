@@ -166,8 +166,8 @@ describe('WorkspaceGrid', () => {
             grid.trackWindow(w1, 0);
             grid.trackWindow(w2, 0);
 
-            // simulate w1 dragged and dropped in the right half (w2's estate)
-            const swapped = grid.swapWindowByPointer(0, w1, mockRect, gaps);
+            // pointer at (750, 150) in w2's estate
+            const swapped = grid.swapWindowByPointer(0, w1, 750, 150, mockRect, gaps);
             expect(swapped).toBe(true);
 
             const tracker = grid._getTracker(0);
@@ -184,7 +184,8 @@ describe('WorkspaceGrid', () => {
             grid.trackWindow(w1, 0);
             grid.trackWindow(w2, 0);
 
-            const swapped = grid.swapWindowByPointer(0, w1, mockRect, gaps);
+            // pointer at 2050, 2050
+            const swapped = grid.swapWindowByPointer(0, w1, 2050, 2050, mockRect, gaps);
             expect(swapped).toBe(false);
 
             const tracker = grid._getTracker(0);
@@ -201,7 +202,8 @@ describe('WorkspaceGrid', () => {
             grid.trackWindow(w1, 0);
             grid.trackWindow(w2, 0);
 
-            const swapped = grid.swapWindowByPointer(0, w1, mockRect, gaps);
+            // pointer at 150, 150
+            const swapped = grid.swapWindowByPointer(0, w1, 150, 150, mockRect, gaps);
             expect(swapped).toBe(false);
         });
     });

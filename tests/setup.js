@@ -18,6 +18,32 @@ vi.mock('gi://GLib', () => ({
     }
 }));
 
+vi.mock('gi://St', () => ({
+    default: {
+        Widget: class {
+            constructor() {}
+            set_position() {}
+            set_size() {}
+            show() {}
+            hide() {}
+            destroy() {}
+        }
+    }
+}));
+
+vi.mock('gi://Clutter', () => ({
+    default: {}
+}));
+
+vi.mock('gi://Gio', () => ({
+    default: {
+        Settings: class {
+            constructor() {}
+            get_string() { return 'yellow'; }
+        }
+    }
+}));
+
 const mockMonitorManager = {
     get_monitors: vi.fn(() => [
         { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' },
@@ -53,6 +79,10 @@ global.compositor = {
         }),
         remove: vi.fn()
     }))
+};
+global.get_pointer = vi.fn(() => [0, 0, 0]);
+global.window_group = {
+    add_child: vi.fn()
 };
 
 vi.mock('gi://Meta', () => ({

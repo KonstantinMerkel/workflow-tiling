@@ -4,6 +4,9 @@ import { SignalListener } from './lib/signals.js';
 import { SettingsManager } from './lib/settings.js';
 import { Logger } from './lib/logger.js';
 
+/**
+ * Main extension class. Manages controller and signals.
+ */
 export default class WorkflowTilingExtension extends Extension {
     enable() {
         Logger.info(`Enabling ${this.metadata.name}`);
