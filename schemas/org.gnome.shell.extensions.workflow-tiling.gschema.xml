@@ -61,5 +61,100 @@
       <summary>Custom Move Window Down</summary>
       <description>Custom swap active window with the one below it.</description>
     </key>
+
+    <key name="focus-window-mode" type="s">
+      <default>'default'</default>
+      <summary>Focus Window Keybindings Mode</summary>
+      <description>Mode for focus window keybindings (default or custom).</description>
+    </key>
+
+    <key name="focus-window-left" type="as">
+      <default><![CDATA[['<Primary><Shift>h']]]></default>
+      <summary>Focus Window Left</summary>
+      <description>Focus window to the left.</description>
+    </key>
+    <key name="focus-window-right" type="as">
+      <default><![CDATA[['<Primary><Shift>l']]]></default>
+      <summary>Focus Window Right</summary>
+      <description>Focus window to the right.</description>
+    </key>
+    <key name="focus-window-up" type="as">
+      <default><![CDATA[['<Primary><Shift>k']]]></default>
+      <summary>Focus Window Up</summary>
+      <description>Focus window above.</description>
+    </key>
+    <key name="focus-window-down" type="as">
+      <default><![CDATA[['<Primary><Shift>j']]]></default>
+      <summary>Focus Window Down</summary>
+      <description>Focus window below.</description>
+    </key>
+
+    <key name="custom-focus-window-left" type="as">
+      <default><![CDATA[['<Primary><Shift>h']]]></default>
+      <summary>Custom Focus Window Left</summary>
+      <description>Custom focus window to the left.</description>
+    </key>
+    <key name="custom-focus-window-right" type="as">
+      <default><![CDATA[['<Primary><Shift>l']]]></default>
+      <summary>Custom Focus Window Right</summary>
+      <description>Custom focus window to the right.</description>
+    </key>
+    <key name="custom-focus-window-up" type="as">
+      <default><![CDATA[['<Primary><Shift>k']]]></default>
+      <summary>Custom Focus Window Up</summary>
+      <description>Custom focus window above.</description>
+    </key>
+    <key name="custom-focus-window-down" type="as">
+      <default><![CDATA[['<Primary><Shift>j']]]></default>
+      <summary>Custom Focus Window Down</summary>
+      <description>Custom focus window below.</description>
+    </key>
+
+    <key name="shortcut-close-monitor" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Close Monitor Windows</summary>
+      <description>Close all windows on the active monitor.</description>
+    </key>
+
+    <key name="close-monitor-include-minimized" type="b">
+      <default>false</default>
+      <summary>Close Monitor Include Minimized</summary>
+      <description>Also close minimized windows on the monitor.</description>
+    </key>
+
+    <key name="shortcut-close-workspace" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Close Workspace Windows</summary>
+      <description>Close all windows on the current workspace.</description>
+    </key>
+
+
+    <key name="shortcut-switch-monitor" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Switch Monitors</summary>
+      <description>Swap monitors content or swap active with primary.</description>
+    </key>
+
+
+    <key name="shortcut-port-monitor-left" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Port Monitor Left</summary>
+      <description>Move active monitor windows to adjacent left workspace.</description>
+    </key>
+
+
+    <key name="shortcut-port-monitor-right" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Port Monitor Right</summary>
+      <description>Move active monitor windows to adjacent right workspace.</description>
+    </key>
+
+
+    <key name="shortcut-unminimize-workspace" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Unminimize Workspace</summary>
+      <description>Unminimize all windows on the active workspace.</description>
+    </key>
+
   </schema>
 </schemalist>
