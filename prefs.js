@@ -145,23 +145,22 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         });
         keysGroup.add(modeRow);
 
-        const customMoveLeft = new ShortcutRow(settings, 'custom-move-window-left', '  ↳ Move Window Left');
-        const customMoveRight = new ShortcutRow(settings, 'custom-move-window-right', '  ↳ Move Window Right');
-        const customMoveUp = new ShortcutRow(settings, 'custom-move-window-up', '  ↳ Move Window Up');
-        const customMoveDown = new ShortcutRow(settings, 'custom-move-window-down', '  ↳ Move Window Down');
-        keysGroup.add(customMoveLeft);
-        keysGroup.add(customMoveRight);
-        keysGroup.add(customMoveUp);
-        keysGroup.add(customMoveDown);
+        const moveRows = [
+            { id: 'custom-move-window-left', label: '  ↳ Move Window Left' },
+            { id: 'custom-move-window-right', label: '  ↳ Move Window Right' },
+            { id: 'custom-move-window-up', label: '  ↳ Move Window Up' },
+            { id: 'custom-move-window-down', label: '  ↳ Move Window Down' }
+        ].map(s => {
+            const row = new ShortcutRow(settings, s.id, s.label);
+            keysGroup.add(row);
+            return row;
+        });
 
         const updateVisibility = () => {
             const mode = settings.get_string('keybindings-mode');
             modeRow.subtitle = mode === 'default' ? 'Default: <Super> + <Arrow_Keys>' : '';
             const showCustom = mode === 'custom';
-            customMoveLeft.visible = showCustom;
-            customMoveRight.visible = showCustom;
-            customMoveUp.visible = showCustom;
-            customMoveDown.visible = showCustom;
+            moveRows.forEach(r => r.visible = showCustom);
         };
         settings.connect('changed::keybindings-mode', updateVisibility);
         updateVisibility();
@@ -186,23 +185,22 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         });
         focusGroup.add(focusModeRow);
 
-        const customFocusLeft = new ShortcutRow(settings, 'custom-focus-window-left', '  ↳ Focus Window Left');
-        const customFocusRight = new ShortcutRow(settings, 'custom-focus-window-right', '  ↳ Focus Window Right');
-        const customFocusUp = new ShortcutRow(settings, 'custom-focus-window-up', '  ↳ Focus Window Up');
-        const customFocusDown = new ShortcutRow(settings, 'custom-focus-window-down', '  ↳ Focus Window Down');
-        focusGroup.add(customFocusLeft);
-        focusGroup.add(customFocusRight);
-        focusGroup.add(customFocusUp);
-        focusGroup.add(customFocusDown);
+        const focusRows = [
+            { id: 'custom-focus-window-left', label: '  ↳ Focus Window Left' },
+            { id: 'custom-focus-window-right', label: '  ↳ Focus Window Right' },
+            { id: 'custom-focus-window-up', label: '  ↳ Focus Window Up' },
+            { id: 'custom-focus-window-down', label: '  ↳ Focus Window Down' }
+        ].map(s => {
+            const row = new ShortcutRow(settings, s.id, s.label);
+            focusGroup.add(row);
+            return row;
+        });
 
         const updateFocusVisibility = () => {
             const mode = settings.get_string('focus-window-mode');
             focusModeRow.subtitle = mode === 'default' ? 'Default: <Ctrl> + <Shift> + <Vim (h,j,k,l)>' : '';
             const showCustom = mode === 'custom';
-            customFocusLeft.visible = showCustom;
-            customFocusRight.visible = showCustom;
-            customFocusUp.visible = showCustom;
-            customFocusDown.visible = showCustom;
+            focusRows.forEach(r => r.visible = showCustom);
         };
         settings.connect('changed::focus-window-mode', updateFocusVisibility);
         updateFocusVisibility();
@@ -225,11 +223,13 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         updateCloseMinRowVisibility();
         batchKeysGroup.add(closeMinRow);
 
-        batchKeysGroup.add(new ShortcutRow(settings, 'shortcut-close-workspace', 'Close Workspace Windows'));
-        batchKeysGroup.add(new ShortcutRow(settings, 'shortcut-switch-monitor', 'Switch Monitors'));
-        batchKeysGroup.add(new ShortcutRow(settings, 'shortcut-port-monitor-left', 'Port Monitor to Left Workspace'));
-        batchKeysGroup.add(new ShortcutRow(settings, 'shortcut-port-monitor-right', 'Port Monitor to Right Workspace'));
-        batchKeysGroup.add(new ShortcutRow(settings, 'shortcut-unminimize-workspace', 'Unminimize Workspace'));
+        [
+            { id: 'shortcut-close-workspace', label: 'Close Workspace Windows' },
+            { id: 'shortcut-switch-monitor', label: 'Switch Monitors' },
+            { id: 'shortcut-port-monitor-left', label: 'Port Monitor to Left Workspace' },
+            { id: 'shortcut-port-monitor-right', label: 'Port Monitor to Right Workspace' },
+            { id: 'shortcut-unminimize-workspace', label: 'Unminimize Workspace' }
+        ].forEach(s => batchKeysGroup.add(new ShortcutRow(settings, s.id, s.label)));
 
         page.add(batchKeysGroup);
 

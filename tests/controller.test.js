@@ -58,13 +58,13 @@ describe('TilingController', () => {
 
         // First register as normal
         controller.tilingRequest(win);
-        const grid = controller.getWorkspaceGrid(ws);
-        expect(grid.monitors.get('monitor-0').size).toBe(1);
+        const layout = controller.workspaceManager.getLayout(ws);
+        expect(layout.monitors.get('monitor-0').size).toBe(1);
 
         // Minimize
         win.minimized = true;
         controller.tilingRequest(win);
-        expect(grid.monitors.get('monitor-0').size).toBe(0);
+        expect(layout.monitors.get('monitor-0').size).toBe(0);
     });
 
     it('should re-tile window when restored from minimization', () => {
@@ -73,13 +73,13 @@ describe('TilingController', () => {
         win.minimized = true;
 
         controller.tilingRequest(win);
-        const grid = controller.getWorkspaceGrid(ws);
-        expect(grid.monitors.get('monitor-0').size).toBe(0);
+        const layout = controller.workspaceManager.getLayout(ws);
+        expect(layout.monitors.get('monitor-0').size).toBe(0);
 
         // Restore
         win.minimized = false;
         controller.tilingRequest(win);
-        expect(grid.monitors.get('monitor-0').size).toBe(1);
+        expect(layout.monitors.get('monitor-0').size).toBe(1);
     });
 
     it('should handle movement between workspaces', () => {
@@ -91,14 +91,14 @@ describe('TilingController', () => {
         win.get_workspace = () => currentWs;
 
         controller.tilingRequest(win);
-        const grid1 = controller.getWorkspaceGrid(ws1);
+        const grid1 = controller.workspaceManager.getLayout(ws1);
         expect(grid1.monitors.get('monitor-0').size).toBe(1);
 
         // Move to workspace 2
         currentWs = ws2;
         controller.tilingRequest(win);
 
-        const grid2 = controller.getWorkspaceGrid(ws2);
+        const grid2 = controller.workspaceManager.getLayout(ws2);
         expect(grid1.monitors.get('monitor-0').size).toBe(0);
         expect(grid2.monitors.get('monitor-0').size).toBe(1);
     });
@@ -111,8 +111,8 @@ describe('TilingController', () => {
         // A, B -> [A, B]
         controller.tilingRequest(winA);
         controller.tilingRequest(winB);
-        const grid = controller.getWorkspaceGrid(ws);
-        const tracker = grid.monitors.get('monitor-0');
+        const layout = controller.workspaceManager.getLayout(ws);
+        const tracker = layout.monitors.get('monitor-0');
         
         expect(tracker.windows).toEqual([winA, winB]);
 
@@ -135,8 +135,8 @@ describe('TilingController', () => {
         // A, B -> [A, B]
         controller.tilingRequest(winA);
         controller.tilingRequest(winB);
-        const grid = controller.getWorkspaceGrid(ws);
-        const tracker = grid.monitors.get('monitor-0');
+        const layout = controller.workspaceManager.getLayout(ws);
+        const tracker = layout.monitors.get('monitor-0');
         
         expect(tracker.windows).toEqual([winA, winB]);
 
@@ -270,9 +270,9 @@ describe('TilingController', () => {
         expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
         expect(controller._windowWrappers.get(win).monitorIndex).toBe(1);
 
-        // Window tracked in grid despite minimized=true (restoring bypass)
-        const grid = controller.getWorkspaceGrid(ws);
-        expect(grid.monitors.get('monitor-1').windows).toContain(win);
+        // Window tracked in layout despite minimized=true (restoring bypass)
+        const layout = controller.workspaceManager.getLayout(ws);
+        expect(layout.monitors.get('monitor-1').windows).toContain(win);
     });
 
     it('should handle monitor index shifting via hydration sweep', () => {
@@ -321,7 +321,7 @@ describe('TilingController', () => {
         controller.clear();
         
         expect(controller._windowWrappers.size).toBe(0);
-        expect(controller.workspaceGrids.size).toBe(0);
+        expect(controller.workspaceManager.layouts.size).toBe(0);
         expect(controller._retileTimeouts.size).toBe(0);
         expect(controller.monitorManager._evacuatedWindows.size).toBe(0);
         expect(controller._restoringWindows.size).toBe(0);
@@ -345,7 +345,7 @@ describe('TilingController', () => {
         controller.tilingRequest(win);
         
         // Sabotage the workspace to throw on untrack
-        vi.spyOn(controller, 'getWorkspaceGrid').mockImplementation(() => {
+        vi.spyOn(controller.workspaceManager, 'getLayout').mockImplementation(() => {
             throw new Error('test error');
         });
         
@@ -418,18 +418,18 @@ describe('TilingController', () => {
     });
 
     describe('moveWindowDirection', () => {
-        it('should delegate to grid and schedule retile if moved', () => {
+        it('should delegate to layout and schedule retile if moved', () => {
             const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
             const win = createMockWindow(1, ws, 0);
             controller.tilingRequest(win);
 
-            const grid = controller.getWorkspaceGrid(ws);
-            vi.spyOn(grid, 'moveWindowDirection').mockReturnValue(true);
+            const layout = controller.workspaceManager.getLayout(ws);
+            vi.spyOn(layout, 'moveWindowDirection').mockReturnValue(true);
             vi.spyOn(controller, '_scheduleRetile');
 
             controller.moveWindowDirection(win, 'left');
 
-            expect(grid.moveWindowDirection).toHaveBeenCalledWith('monitor-0', win, 'left');
+            expect(layout.moveWindowDirection).toHaveBeenCalledWith('monitor-0', win, 'left');
             expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
         });
 
@@ -463,8 +463,8 @@ describe('TilingController', () => {
 
             const indicator = controller.dragManager._activeDrag.indicator;
             vi.spyOn(indicator, 'destroy');
-            const grid = controller.getWorkspaceGrid(ws);
-            vi.spyOn(grid, 'swapWindowByPointer').mockReturnValue(true);
+            const layout = controller.workspaceManager.getLayout(ws);
+            vi.spyOn(layout, 'swapWindowByPointer').mockReturnValue(true);
             vi.spyOn(controller, '_scheduleRetile');
 
             controller.dragManager.endDragTracking(win);
@@ -472,7 +472,7 @@ describe('TilingController', () => {
             expect(win.disconnect).toHaveBeenCalledWith(123);
             expect(indicator.destroy).toHaveBeenCalled();
             expect(controller.dragManager._activeDrag).toBeNull();
-            expect(grid.swapWindowByPointer).toHaveBeenCalledWith('monitor-0', win, expect.any(Number), expect.any(Number), expect.any(Object), expect.any(Object));
+            expect(layout.swapWindowByPointer).toHaveBeenCalledWith('monitor-0', win, expect.any(Number), expect.any(Number), expect.any(Object), expect.any(Object));
             expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
         });
 
@@ -491,10 +491,47 @@ describe('TilingController', () => {
             expect(posChangedCb).toBeDefined();
             
             global.get_pointer = vi.fn(() => [500, 500]);
-            const grid = controller.getWorkspaceGrid(ws);
-            vi.spyOn(grid, 'getSlotAtPointer').mockReturnValue(0);
+            const layout = controller.workspaceManager.getLayout(ws);
+            vi.spyOn(layout, 'getSlotAtPointer').mockReturnValue(0);
 
             expect(() => posChangedCb()).not.toThrow();
+        });
+
+        it('should apply and revert visual swap during drag', () => {
+            const ws = { id: 'ws1', get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
+            const win1 = createMockWindow(1, ws, 0);
+            const win2 = createMockWindow(2, ws, 0);
+            controller.tilingRequest(win1);
+            controller.tilingRequest(win2);
+            
+            let posChangedCb;
+            win1.connect = vi.fn((event, cb) => {
+                if (event === 'position-changed') posChangedCb = cb;
+                return 123;
+            });
+
+            controller.dragManager.startDragTracking(win1);
+            
+            global.get_pointer = vi.fn(() => [500, 500]);
+            const layout = controller.workspaceManager.getLayout(ws);
+            
+            // Hover over slot 1
+            vi.spyOn(layout, 'getSlotAtPointer').mockReturnValue(1);
+            vi.spyOn(controller.dragManager, '_applyVisualSwap');
+            
+            posChangedCb();
+            
+            expect(controller.dragManager._applyVisualSwap).toHaveBeenCalled();
+            expect(controller.dragManager._activeDrag.lastHoveredSlot).toBe(1);
+            
+            // Hover over nothing
+            vi.spyOn(layout, 'getSlotAtPointer').mockReturnValue(-1);
+            vi.spyOn(controller.dragManager, '_revertVisualSwap');
+            
+            posChangedCb();
+            
+            expect(controller.dragManager._revertVisualSwap).toHaveBeenCalled();
+            expect(controller.dragManager._activeDrag.lastHoveredSlot).toBe(-1);
         });
     });
 });
