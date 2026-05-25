@@ -14,6 +14,7 @@ export default class WorkflowTilingExtension extends Extension {
         this._controller = new TilingController(this._settings);
         this._settings.onSettingsChanged = () => this._controller.retileAll();
         this._signals = new SignalListener(this._controller);
+        this._settings.onKeybindingsChanged = () => this._signals.rebindKeybindings();
         this._signals.bind();
     }
 
