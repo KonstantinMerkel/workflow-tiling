@@ -4,6 +4,9 @@ import Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { LayoutPreviewPage } from './lib/editor/preview.js';
+import { LayoutEditorPage } from './lib/editor/editor.js';
+
 
 const ShortcutRowMixin = {
     _recordShortcut() {
@@ -236,49 +239,11 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         window.add(page);
 
         // --- Custom Layouts (JSON debug) Page ---
-        const layoutPage = new Adw.PreferencesPage({ title: 'JSON', icon_name: 'text-x-generic-symbolic' });
-        const layoutGroup = new Adw.PreferencesGroup({ title: 'Custom JSON Layouts' });
-        
-        const textView = new Gtk.TextView({
-            wrap_mode: Gtk.WrapMode.WORD_CHAR,
-            monospace: true,
-            vexpand: true,
-            hexpand: true,
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 12,
-            margin_bottom: 12
-        });
-        const jsonBuf = textView.get_buffer();
-        jsonBuf.set_text(settings.get_string('custom-layouts') || '', -1);
-        settings.connect('changed::custom-layouts', () => {
-            // Always sync JSON view when the setting changes from any source
-            const cur = settings.get_string('custom-layouts') || '';
-            const displayed = jsonBuf.get_text(jsonBuf.get_start_iter(), jsonBuf.get_end_iter(), false);
-            if (cur !== displayed) jsonBuf.set_text(cur, -1);
-        });
-
-        const scrolledWindow = new Gtk.ScrolledWindow({
-            min_content_height: 400,
-            vexpand: true,
-            child: textView,
-            margin_bottom: 12,
-        });
-        
-        layoutGroup.add(scrolledWindow);
-
-        const saveButton = new Gtk.Button({
-            label: 'Save Layouts',
-            css_classes: ['suggested-action'],
-            halign: Gtk.Align.END
-        });
-        saveButton.connect('clicked', () => {
-            const text = jsonBuf.get_text(jsonBuf.get_start_iter(), jsonBuf.get_end_iter(), false);
-            settings.set_string('custom-layouts', text);
-        });
-        layoutGroup.add(saveButton);
-        
-        layoutPage.add(layoutGroup);
+        const layoutPage = new LayoutEditorPage(settings);
         window.add(layoutPage);
+
+        // --- Visual Layout Preview Page ---
+        const previewPage = new LayoutPreviewPage(settings);
+        window.add(previewPage);
     }
 }
