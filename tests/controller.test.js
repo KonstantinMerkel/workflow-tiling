@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TilingController } from '../lib/controller.js';
 import { LayoutParser } from '../lib/layout.js';
 import Meta from 'gi://Meta';
@@ -19,9 +19,17 @@ describe('TilingController', () => {
         // Ensure global.display is in sync with manager mock
         global.display.get_primary_monitor = () => manager.get_primary_monitor();
 
+        TilingController.activeInstance = null;
         controller = new TilingController();
         controller.setEscalator(LayoutParser.parse(DEFAULT_JSON));
         controller.monitorManager.initializeMonitorState();
+    });
+
+    afterEach(() => {
+        if (controller) {
+            controller.clear();
+        }
+        TilingController.activeInstance = null;
     });
 
     const createMockWindow = (id, workspace, initialMonitor) => {
@@ -365,8 +373,10 @@ describe('TilingController', () => {
             throw new Error('init error');
         });
         
+        TilingController.activeInstance = null;
         const newController = new TilingController();
         expect(() => newController.monitorManager.initializeMonitorState()).not.toThrow();
+        newController.clear();
     });
 
     it('should gracefully handle handleMonitorsChanged failures', () => {

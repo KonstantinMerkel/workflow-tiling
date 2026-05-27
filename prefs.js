@@ -240,10 +240,30 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
 
         // --- Custom Layouts (JSON debug) Page ---
         const layoutPage = new LayoutEditorPage(settings);
-        window.add(layoutPage);
+        // Do not add to window yet.
 
-        // --- Visual Layout Preview Page ---
+        // --- Visual Layout Editor Page ---
         const previewPage = new LayoutPreviewPage(settings);
         window.add(previewPage);
+
+        // --- Advanced JSON Toggle ---
+        const advancedGroup = new Adw.PreferencesGroup();
+        const jsonToggle = new Adw.SwitchRow({ 
+            title: 'Edit Base JSON Instead',
+            subtitle: 'Only if you know what you are doing. This will not save you from bad decissions'
+        });
+        
+        let jsonPageAdded = false;
+        jsonToggle.connect('notify::active', () => {
+            if (jsonToggle.active && !jsonPageAdded) {
+                window.add(layoutPage);
+                jsonPageAdded = true;
+            } else if (!jsonToggle.active && jsonPageAdded) {
+                window.remove(layoutPage);
+                jsonPageAdded = false;
+            }
+        });
+        advancedGroup.add(jsonToggle);
+        previewPage.add(advancedGroup);
     }
 }
