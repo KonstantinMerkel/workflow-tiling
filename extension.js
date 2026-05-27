@@ -30,10 +30,7 @@ export default class WorkflowTilingExtension extends Extension {
             if (this._isActive) this._signals.rebindKeybindings();
         }
 
-        if (this._applyCustomLayouts()) {
-            this._signals.bind();
-            this._isActive = true;
-        }
+        this._applyCustomLayouts();
     }
 
     _applyCustomLayouts() {

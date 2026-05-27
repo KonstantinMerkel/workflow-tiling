@@ -157,7 +157,7 @@
     </key>
 
     <key name="custom-layouts" type="s">
-      <default><![CDATA['{"1":[{"x":0,"y":0,"w":100,"h":100}],"2":[{"x":0,"y":0,"w":50,"h":100},{"x":50,"y":0,"w":50,"h":100}],"3":[{"x":0,"y":0,"w":50,"h":100},{"x":50,"y":0,"w":50,"h":50},{"x":50,"y":50,"w":50,"h":50}]}']]></default>
+      <default><![CDATA['{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}']]></default>
       <summary>Custom Layouts JSON</summary>
       <description>JSON string defining custom window layouts.</description>
     </key>
