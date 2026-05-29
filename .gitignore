@@ -2,5 +2,8 @@ node_modules/
 .DS_Store
 *.log
 extension.zip
+CLAUDE.md
+CODEX.md
+CURSOR.md
 GEMINI.md
 coverage/

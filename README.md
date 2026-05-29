@@ -8,10 +8,13 @@ A deterministic customizable auto-tiler extension for GNOME Shell (GNOME 50+).
 - **Workspace Isolation**: Tiling states are unique to each GNOME workspace.
 - **Stability Focused**: Uses WindowWrapper object modeling and compositor-native synchronization (Meta.LaterType) to prevent race conditions and Shell crashes.
 
+## Recommended Extensions
+Workflow Tiling does not natively draw an active window border. For visual indication of the focused window, it is highly recommended to use an extension like **P7 Border** 
+
 ## Custom Layouts
 Layout transitions are configured via JSON string, supporting custom window counts and sizes.
 
-Optional `id` integer properties (1-indexed) in the JSON structure define how windows transition between states:
+Optional `id` (1-indexed) integer properties in the JSON structure define how windows transition between states. It is required for all elements:
 
 ```json
 {
@@ -36,12 +39,11 @@ Optional `id` integer properties (1-indexed) in the JSON structure define how wi
 Unit tests are written using **Vitest**.
 ```bash
 npm install
-npm test
+make test
 ```
 
 ### Installation
-To link the extension to your local GNOME Shell directory:
+To deploy the extension to your local GNOME Shell directory:
 ```bash
-ln -s $(pwd) ~/.local/share/gnome-shell/extensions/workflow-tiling@konstantin.dev
-gnome-extensions enable workflow-tiling@konstantin.dev
+make install
 ```
