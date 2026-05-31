@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ScreenEstate, Layout, createDefaultEscalator } from '../lib/layout.js';
+import { ScreenEstate, Layout, LayoutParser, LayoutValidator } from '../lib/layout.js';
 
 describe('ScreenEstate', () => {
     it('should calculate absolute coordinates with gaps', () => {
@@ -66,11 +66,120 @@ describe('Validation & Immutability', () => {
     });
 
     it('should validate the default escalator layouts', () => {
-        const escalator = createDefaultEscalator();
+        const defaultJson = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
+        const escalator = LayoutParser.parse(defaultJson);
         for (let i = 1; i <= 3; i++) {
             const layout = escalator.getLayoutForCount(i);
             expect(layout).toBeDefined();
             expect(layout.size).toBe(i);
         }
+    });
+});
+
+describe('LayoutValidator', () => {
+    describe('validateCoverage', () => {
+        it('should pass for exact 10000 area', () => {
+            const layout = new Layout([
+                new ScreenEstate(0, 0, 100, 100)
+            ]);
+            expect(() => LayoutValidator.validateCoverage(layout)).not.toThrow();
+        });
+
+        it('should throw if area is less than 10000', () => {
+            const layout = new Layout([
+                new ScreenEstate(0, 0, 50, 100),
+                new ScreenEstate(50, 0, 40, 100)
+            ]);
+            expect(() => LayoutValidator.validateCoverage(layout)).toThrow(/expected 10000/);
+        });
+    });
+
+    describe('Arbitrary Transitions', () => {
+        it('should allow arbitrary transitions like 50/50 split to 33/33/33 split', () => {
+            const json = JSON.stringify({
+                "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 1 } ],
+                "2": [ { "x": 0, "y": 0, "w": 50, "h": 100, "id": 1 }, { "x": 50, "y": 0, "w": 50, "h": 100, "id": 2 } ],
+                "3": [ { "x": 0, "y": 0, "w": 33.33, "h": 100, "id": 1 }, { "x": 33.33, "y": 0, "w": 33.33, "h": 100, "id": 2 }, { "x": 66.66, "y": 0, "w": 33.34, "h": 100, "id": 3 } ]
+            });
+            const escalator = LayoutParser.parse(json);
+            expect(escalator).not.toBeNull();
+            
+            const l3 = escalator.getLayoutForCount(3);
+            expect(l3.size).toBe(3);
+            expect(l3.getEstate(0).pct_w).toBeCloseTo(33.33);
+            expect(l3.getEstate(1).pct_w).toBeCloseTo(33.33);
+            expect(l3.getEstate(2).pct_w).toBeCloseTo(33.34);
+        });
+    });
+});
+
+describe('LayoutParser', () => {
+    it('should return null for empty string', () => {
+        expect(LayoutParser.parse('')).toBeNull();
+        expect(LayoutParser.parse('   ')).toBeNull();
+        expect(LayoutParser.parse(null)).toBeNull();
+    });
+
+    it('should throw on invalid JSON syntax', () => {
+        expect(() => LayoutParser.parse('{ bad }')).toThrow(/Invalid JSON syntax/);
+    });
+
+    it('should parse valid json and return escalator', () => {
+        const json = JSON.stringify({
+            "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 1 } ],
+            "2": [ { "x": 0, "y": 0, "w": 50, "h": 100, "id": 1 }, { "x": 50, "y": 0, "w": 50, "h": 100, "id": 2 } ]
+        });
+        const escalator = LayoutParser.parse(json);
+        expect(escalator).not.toBeNull();
+        
+        const l1 = escalator.getLayoutForCount(1);
+        expect(l1.size).toBe(1);
+        const l2 = escalator.getLayoutForCount(2);
+        expect(l2.size).toBe(2);
+    });
+
+    it('should sort estates by id property', () => {
+        const json = JSON.stringify({
+            "3": [
+                { "x": 33.33, "y": 0, "w": 33.33, "h": 100, "id": 3 },
+                { "x": 66.66, "y": 0, "w": 33.34, "h": 100, "id": 2 },
+                { "x": 0, "y": 0, "w": 33.33, "h": 100, "id": 1 }
+            ]
+        });
+        const escalator = LayoutParser.parse(json);
+        const l3 = escalator.getLayoutForCount(3);
+        expect(l3.getEstate(0).pct_x).toBe(0);
+        expect(l3.getEstate(1).pct_x).toBe(66.66);
+        expect(l3.getEstate(2).pct_x).toBe(33.33);
+    });
+
+    it('should throw if any estate is missing an id', () => {
+        const json = JSON.stringify({
+            "2": [
+                { "x": 0, "y": 0, "w": 50, "h": 100, "id": 1 },
+                { "x": 50, "y": 0, "w": 50, "h": 100 }
+            ]
+        });
+        expect(() => LayoutParser.parse(json)).toThrow(/has estate without an id/);
+    });
+
+    it('should throw if duplicate ids are present', () => {
+        const json = JSON.stringify({
+            "2": [
+                { "x": 0, "y": 0, "w": 50, "h": 100, "id": 1 },
+                { "x": 50, "y": 0, "w": 50, "h": 100, "id": 1 }
+            ]
+        });
+        expect(() => LayoutParser.parse(json)).toThrow(/must have unique ids/);
+    });
+
+    it('should throw if id is out of bounds', () => {
+        const json = JSON.stringify({
+            "2": [
+                { "x": 0, "y": 0, "w": 50, "h": 100, "id": 1 },
+                { "x": 50, "y": 0, "w": 50, "h": 100, "id": 3 }
+            ]
+        });
+        expect(() => LayoutParser.parse(json)).toThrow(/is missing id 2/);
     });
 });

@@ -4,6 +4,9 @@ import Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { LayoutPreviewPage } from './lib/editor/preview.js';
+import { LayoutEditorPage } from './lib/editor/editor.js';
+
 
 const ShortcutRowMixin = {
     _recordShortcut() {
@@ -99,12 +102,12 @@ class ShortcutRow extends Adw.ActionRow {
 });
 Object.assign(ShortcutRow.prototype, ShortcutRowMixin);
 
-// ToggleableShortcutRow removed as requested
+// Layout editor page outsourced to lib/editor/
 export default class WorkflowTilingPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
 
-        const page = new Adw.PreferencesPage();
+        const page = new Adw.PreferencesPage({ title: 'General', icon_name: 'preferences-system-symbolic' });
         
         // --- Gaps Group ---
         const gapsGroup = new Adw.PreferencesGroup({ title: 'Gaps' });
@@ -234,5 +237,33 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         page.add(batchKeysGroup);
 
         window.add(page);
+
+        // --- Custom Layouts (JSON debug) Page ---
+        const layoutPage = new LayoutEditorPage(settings);
+        // Do not add to window yet.
+
+        // --- Visual Layout Editor Page ---
+        const previewPage = new LayoutPreviewPage(settings);
+        window.add(previewPage);
+
+        // --- Advanced JSON Toggle ---
+        const advancedGroup = new Adw.PreferencesGroup();
+        const jsonToggle = new Adw.SwitchRow({ 
+            title: 'Edit Base JSON Instead',
+            subtitle: 'Only if you know what you are doing. This will not save you from bad decisions'
+        });
+        
+        let jsonPageAdded = false;
+        jsonToggle.connect('notify::active', () => {
+            if (jsonToggle.active && !jsonPageAdded) {
+                window.add(layoutPage);
+                jsonPageAdded = true;
+            } else if (!jsonToggle.active && jsonPageAdded) {
+                window.remove(layoutPage);
+                jsonPageAdded = false;
+            }
+        });
+        advancedGroup.add(jsonToggle);
+        previewPage.add(advancedGroup);
     }
 }

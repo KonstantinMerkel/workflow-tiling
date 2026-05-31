@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TilingController } from '../lib/controller.js';
+import { LayoutParser } from '../lib/layout.js';
 import Meta from 'gi://Meta';
+
+const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
 
 describe('TilingController', () => {
     let controller;
@@ -16,8 +19,17 @@ describe('TilingController', () => {
         // Ensure global.display is in sync with manager mock
         global.display.get_primary_monitor = () => manager.get_primary_monitor();
 
+        TilingController.activeInstance = null;
         controller = new TilingController();
+        controller.setEscalator(LayoutParser.parse(DEFAULT_JSON));
         controller.monitorManager.initializeMonitorState();
+    });
+
+    afterEach(() => {
+        if (controller) {
+            controller.clear();
+        }
+        TilingController.activeInstance = null;
     });
 
     const createMockWindow = (id, workspace, initialMonitor) => {
@@ -286,6 +298,7 @@ describe('TilingController', () => {
         // Window on monitor-1 (HDMI-1)
         const win = createMockWindow(1, ws, 1);
         vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
+        vi.mocked(global.display.list_all_windows).mockReturnValue([win]);
 
         controller.tilingRequest(win);
         expect(controller._windowWrappers.get(win).monitorIndex).toBe(1);
@@ -360,8 +373,10 @@ describe('TilingController', () => {
             throw new Error('init error');
         });
         
+        TilingController.activeInstance = null;
         const newController = new TilingController();
         expect(() => newController.monitorManager.initializeMonitorState()).not.toThrow();
+        newController.clear();
     });
 
     it('should gracefully handle handleMonitorsChanged failures', () => {
@@ -377,9 +392,7 @@ describe('TilingController', () => {
     it('should hydrate with active workspace', () => {
         const ws = { id: 'ws1', list_windows: vi.fn(() => []), get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
         const win = createMockWindow(1, ws, 0);
-        ws.list_windows.mockReturnValue([win]);
-        
-        vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
+        vi.mocked(global.display.list_all_windows).mockReturnValue([win]);
         
         vi.spyOn(controller, 'tilingRequest');
         controller.hydrate();
@@ -391,10 +404,9 @@ describe('TilingController', () => {
         const ws = { id: 'ws1', list_windows: vi.fn(() => []), get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
         const win1 = createMockWindow(1, ws, 0); // Active workspace
         const win2 = createMockWindow(2, ws, 0); // Evacuated/Restoring
-        
-        ws.list_windows.mockReturnValue([win1]);
+
+        vi.mocked(global.display.list_all_windows).mockReturnValue([win1]);
         controller._restoringWindows.set(win2, 0);
-        vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
         
         vi.spyOn(controller, 'tilingRequest');
         controller.hydrate();
@@ -407,9 +419,7 @@ describe('TilingController', () => {
         const ws = { id: 'ws1', list_windows: vi.fn(() => []), get_work_area_for_monitor: () => ({ x: 0, y: 0, width: 1000, height: 1000 }) };
         const win = createMockWindow(1, ws, 0);
         win.unmanaged = true;
-        ws.list_windows.mockReturnValue([win]);
-        
-        vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
+        vi.mocked(global.display.list_all_windows).mockReturnValue([win]);
         
         vi.spyOn(controller, 'tilingRequest');
         controller.hydrate();

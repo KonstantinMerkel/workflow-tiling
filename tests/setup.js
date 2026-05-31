@@ -66,7 +66,12 @@ global.backend = {
     get_monitor_manager: () => mockMonitorManager
 };
 global.display = {
-    get_primary_monitor: () => mockMonitorManager.get_primary_monitor()
+    get_primary_monitor: () => mockMonitorManager.get_primary_monitor(),
+    get_current_monitor: vi.fn(() => 0),
+    get_focus_window: vi.fn(() => null),
+    list_all_windows: vi.fn(() => []),
+    connect: vi.fn(),
+    disconnect: vi.fn()
 };
 global.workspace_manager = {
     get_active_workspace: vi.fn(() => ({

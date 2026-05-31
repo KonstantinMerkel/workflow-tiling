@@ -7,24 +7,74 @@ import { Logger } from './lib/logger.js';
 /**
  * Main extension class. Manages controller and signals.
  */
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { LayoutParser } from './lib/layout.js';
+
 export default class WorkflowTilingExtension extends Extension {
     enable() {
         Logger.info(`Enabling ${this.metadata.name}`);
         this._settings = new SettingsManager(this);
         this._controller = new TilingController(this._settings);
-        this._settings.onSettingsChanged = () => this._controller.retileAll();
         this._signals = new SignalListener(this._controller);
-        this._settings.onKeybindingsChanged = () => this._signals.rebindKeybindings();
-        this._signals.bind();
+        
+        this._isActive = false;
+        this._wasSuspended = false;
+
+        this._settings.onSettingsChanged = () => {
+            if (this._applyCustomLayouts()) {
+                this._controller.hydrate();
+            }
+        };
+
+        this._settings.onKeybindingsChanged = () => {
+            if (this._isActive) this._signals.rebindKeybindings();
+        }
+
+        this._applyCustomLayouts();
+    }
+
+    _applyCustomLayouts() {
+        if (!this._settings || !this._controller) return false;
+        const customJson = this._settings.getCustomLayouts();
+        let escalator = null;
+
+        try {
+            escalator = LayoutParser.parse(customJson);
+            if (!escalator) throw new Error("Parsed layout is empty.");
+        } catch (e) {
+            Logger.error(`Invalid custom layouts JSON: ${e.message}`);
+            Main.notifyError('Workflow Tiling', `Invalid layouts JSON. Suspending extension.\n${e.message}`);
+            if (this._isActive) {
+                this._signals.unbind();
+                this._controller.clear();
+                this._isActive = false;
+                this._wasSuspended = true;
+            }
+            return false;
+        }
+
+        this._controller.setEscalator(escalator);
+
+        if (!this._isActive) {
+            this._signals.bind();
+            this._isActive = true;
+            if (this._wasSuspended) {
+                Main.notify('Workflow Tiling', 'Valid layout provided. Extension resumed.');
+                this._wasSuspended = false;
+            }
+        }
+        return true;
     }
 
     disable() {
         Logger.info(`Disabling ${this.metadata.name}`);
-        this._signals.unbind();
-        this._settings.destroy();
-        this._controller.clear();
+        if (this._isActive) this._signals.unbind();
+        if (this._settings) this._settings.destroy();
+        if (this._controller) this._controller.clear();
         this._signals = null;
         this._settings = null;
         this._controller = null;
+        this._isActive = false;
+        this._wasSuspended = false;
     }
 }
