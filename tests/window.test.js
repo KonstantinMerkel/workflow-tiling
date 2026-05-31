@@ -88,7 +88,7 @@ describe('WindowWrapper', () => {
     it('should apply geometry', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.applyGeometry({ x: 10.4, y: 10.5, width: 100.1, height: 100.9 });
-        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(true, 10, 11, 100, 101);
+        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(false, 10, 11, 100, 101);
     });
 
     it('should unmaximize before applying geometry if maximized', () => {
@@ -98,7 +98,7 @@ describe('WindowWrapper', () => {
         
         expect(mockWindow.unmaximize).toHaveBeenCalled();
         // The compositor mock triggers callback immediately in tests (LatertType.BEFORE_REDRAW)
-        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(true, 10, 10, 100, 100);
+        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(false, 10, 10, 100, 100);
     });
 
     it('should catch error on disconnect fail', () => {

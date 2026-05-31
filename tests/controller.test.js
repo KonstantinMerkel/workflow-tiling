@@ -393,7 +393,7 @@ describe('TilingController', () => {
         const win2 = createMockWindow(2, ws, 0); // Evacuated/Restoring
         
         ws.list_windows.mockReturnValue([win1]);
-        controller._restoringWindows.add(win2);
+        controller._restoringWindows.set(win2, 0);
         vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
         
         vi.spyOn(controller, 'tilingRequest');
