@@ -27,8 +27,9 @@ Encapsulates `Meta.Window`.
 Applies calculated geometry.
 Binds single-shot `size-changed` signals to detect external resizing.
 
-## WorkspaceGrid (`lib/workspace.js`)
-Tracks windows per workspace and monitor.
+## WorkspaceManager & WorkspaceLayout (`lib/workspace.js`)
+`WorkspaceManager` tracks multiple layouts across GNOME workspaces.
+`WorkspaceLayout` tracks windows per workspace and monitor.
 Calculates window slots based on insertion order.
 Provides window displacement and swapping logic.
 
@@ -37,6 +38,19 @@ Maintains stable ordered list of windows.
 Handles track and untrack operations.
 Swaps window positions.
 
+## DragManager (`lib/drag.js`)
+Tracks window drag-and-drop operations.
+Renders visual swap indicators.
+Triggers geometric swapping based on pointer intersections.
+
+## SettingsManager (`lib/settings.js`)
+Loads configuration preferences.
+Parses layout JSON into valid escalator transitions.
+
+## Logger (`lib/logger.js`)
+Provides debug and trace logging.
+Configurable output verbosity.
+
 ## Escalator (`lib/layout.js`)
 Generates tile geometries.
 Provides geometric estates based on current window count.
@@ -44,7 +58,7 @@ Provides geometric estates based on current window count.
 ## Execution Flow
 Signal triggers event.
 Controller receives event.
-Controller updates WorkspaceGrid state.
+Controller updates WorkspaceLayout state.
 Controller schedules deferred retile.
 Retile queries Escalator for layouts.
 Retile invokes WindowWrapper to apply geometries.

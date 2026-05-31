@@ -9,8 +9,7 @@ Layout transitions are predictable, minimal, and fully customizable. The system 
 ### Deterministic Layout Flow
 
 - **Single Window**: Full screen layout covering all available space.
-- **Two Windows**: Vertical split dividing space equally.
-- **Three Windows**: Customizable split using equal proportions or master/stack splits.
+- **Multiple Windows**: Fully customizable geometric distributions via JSON configuration.
 - **Fallback**: Additional windows exceeding configured count run in floating mode.
 
 ## Implementation Standards
@@ -26,7 +25,5 @@ Layout transitions are predictable, minimal, and fully customizable. The system 
 -   **Workspace Isolation**: Tiling is scoped per GNOME workspace.
 
 ## Future Roadmap
-1.  Custom layout creation via configuration.
-2.  Keyboard and mouse shortcuts for manual re-ordering.
-3.  Active window border, for now just use an extension like focus on active window/ P7 Border.
-4.  Implement type safety (JSDoc + `@girs` types and `jsconfig.json`).
+1.  Implement type safety
+2.  Make some GNOME native shortcuts as remove active window editable in extension.
