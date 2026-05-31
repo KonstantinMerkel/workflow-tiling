@@ -11,21 +11,21 @@ A deterministic customizable auto-tiler extension for GNOME Shell (GNOME 50+).
 ## Custom Layouts
 Layout transitions are configured via JSON string, supporting custom window counts and sizes.
 
-Optional `slot` or `index` integer properties in the JSON structure define how windows transition between states:
+Optional `id` integer properties (1-indexed) in the JSON structure define how windows transition between states:
 
 ```json
 {
   "1": [
-    {"x": 0, "y": 0, "w": 100, "h": 100}
+    {"x": 0, "y": 0, "w": 100, "h": 100, "id": 1}
   ],
   "2": [
-    {"x": 0, "y": 0, "w": 50, "h": 100, "slot": 0},
-    {"x": 50, "y": 0, "w": 50, "h": 100, "slot": 1}
+    {"x": 0, "y": 0, "w": 50, "h": 100, "id": 1},
+    {"x": 50, "y": 0, "w": 50, "h": 100, "id": 2}
   ],
   "3": [
-    {"x": 0, "y": 0, "w": 33.33, "h": 100, "slot": 0},
-    {"x": 33.33, "y": 0, "w": 33.33, "h": 100, "slot": 2},
-    {"x": 66.66, "y": 0, "w": 33.34, "h": 100, "slot": 1}
+    {"x": 0, "y": 0, "w": 33.33, "h": 100, "id": 1},
+    {"x": 33.33, "y": 0, "w": 33.33, "h": 100, "id": 3},
+    {"x": 66.66, "y": 0, "w": 33.34, "h": 100, "id": 2}
   ]
 }
 ```

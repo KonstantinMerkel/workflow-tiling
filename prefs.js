@@ -250,7 +250,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         const advancedGroup = new Adw.PreferencesGroup();
         const jsonToggle = new Adw.SwitchRow({ 
             title: 'Edit Base JSON Instead',
-            subtitle: 'Only if you know what you are doing. This will not save you from bad decissions'
+            subtitle: 'Only if you know what you are doing. This will not save you from bad decisions'
         });
         
         let jsonPageAdded = false;
