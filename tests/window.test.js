@@ -48,10 +48,10 @@ describe('WindowWrapper', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.bindSignals();
         wrapper.bindSignals(); // should not connect again
-        expect(mockWindow.connect).toHaveBeenCalledTimes(5);
+        expect(mockWindow.connect).toHaveBeenCalledTimes(6);
     });
 
-    it('should bind one shot size changed and disconnect on fire', () => {
+    it('should bind size changed and respect _isResizing', () => {
         let sizeChangedCb = null;
         mockWindow.connect = vi.fn((name, cb) => {
             if (name === 'size-changed') sizeChangedCb = cb;
@@ -65,8 +65,13 @@ describe('WindowWrapper', () => {
         
         // Fire it
         sizeChangedCb();
-        expect(mockWindow.disconnect).toHaveBeenCalledWith(99);
         expect(mockController.tilingRequest).toHaveBeenCalledWith(mockWindow);
+
+        // Fire it while resizing
+        wrapper._isResizing = true;
+        mockController.tilingRequest.mockClear();
+        sizeChangedCb();
+        expect(mockController.tilingRequest).not.toHaveBeenCalled();
     });
 
     it('should destroy and disconnect all signals', () => {
@@ -75,7 +80,7 @@ describe('WindowWrapper', () => {
         wrapper.bindSizeChanged();
         
         wrapper.destroy();
-        expect(mockWindow.disconnect).toHaveBeenCalledTimes(6);
+        expect(mockWindow.disconnect).toHaveBeenCalledTimes(7);
     });
 
     it('should apply geometry skipping unmanaged', () => {
