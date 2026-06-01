@@ -1,15 +1,16 @@
 # Workflow Tiling Vision
 
-A deterministic three-window auto-tiler for GNOME Shell.
+A deterministic auto-tiler for GNOME Shell.
 
-## Core Philosophy: "One Cut Away"
-The layout transitions should be predictable and minimal. The extension maintains a hardcoded escalation of three layouts before falling back to standard floating management.
+## Core Philosophy: Scalable Layout Transition
+
+Layout transitions are predictable, minimal, and fully customizable. The system scales from a single window up to custom window counts using configurable layout rules before falling back to floating mode.
 
 ### Deterministic Layout Flow
-1.  **Level 1 (Single Window)**: Full screen (100% width, 100% height).
-2.  **Level 2 (Two Windows)**: Vertical split (50% left, 50% right).
-3.  **Level 3 (Three Windows)**: Master/Stack split (50% left master, two 50% height stacks on the right).
-4.  **Fallback**: Any additional windows are managed in floating mode.
+
+- **Single Window**: Full screen layout covering all available space.
+- **Multiple Windows**: Fully customizable geometric distributions via JSON configuration.
+- **Fallback**: Additional windows exceeding configured count run in floating mode.
 
 ## Implementation Standards
 
@@ -24,6 +25,5 @@ The layout transitions should be predictable and minimal. The extension maintain
 -   **Workspace Isolation**: Tiling is scoped per GNOME workspace.
 
 ## Future Roadmap
-1.  Custom layout creation via configuration.
-2.  Keyboard and mouse shortcuts for manual re-ordering.
-3. Active window boarder, for now just use an extension like focus on active window/ P7 Boarder
+1.  Implement type safety
+2.  Make some GNOME native shortcuts as remove active window editable in extension.

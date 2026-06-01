@@ -48,10 +48,10 @@ describe('WindowWrapper', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.bindSignals();
         wrapper.bindSignals(); // should not connect again
-        expect(mockWindow.connect).toHaveBeenCalledTimes(3);
+        expect(mockWindow.connect).toHaveBeenCalledTimes(6);
     });
 
-    it('should bind one shot size changed and disconnect on fire', () => {
+    it('should bind size changed and respect _isResizing', () => {
         let sizeChangedCb = null;
         mockWindow.connect = vi.fn((name, cb) => {
             if (name === 'size-changed') sizeChangedCb = cb;
@@ -59,23 +59,28 @@ describe('WindowWrapper', () => {
         });
 
         const wrapper = new WindowWrapper(mockWindow, mockController);
-        wrapper.bindOneShotSizeChanged();
+        wrapper.bindSizeChanged();
         
         expect(mockWindow.connect).toHaveBeenCalledWith('size-changed', expect.any(Function));
         
         // Fire it
         sizeChangedCb();
-        expect(mockWindow.disconnect).toHaveBeenCalledWith(99);
         expect(mockController.tilingRequest).toHaveBeenCalledWith(mockWindow);
+
+        // Fire it while resizing
+        wrapper._isResizing = true;
+        mockController.tilingRequest.mockClear();
+        sizeChangedCb();
+        expect(mockController.tilingRequest).not.toHaveBeenCalled();
     });
 
     it('should destroy and disconnect all signals', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.bindSignals();
-        wrapper.bindOneShotSizeChanged();
+        wrapper.bindSizeChanged();
         
         wrapper.destroy();
-        expect(mockWindow.disconnect).toHaveBeenCalledTimes(4);
+        expect(mockWindow.disconnect).toHaveBeenCalledTimes(7);
     });
 
     it('should apply geometry skipping unmanaged', () => {
@@ -88,7 +93,7 @@ describe('WindowWrapper', () => {
     it('should apply geometry', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.applyGeometry({ x: 10.4, y: 10.5, width: 100.1, height: 100.9 });
-        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(true, 10, 11, 100, 101);
+        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(false, 10, 11, 100, 101);
     });
 
     it('should unmaximize before applying geometry if maximized', () => {
@@ -98,7 +103,7 @@ describe('WindowWrapper', () => {
         
         expect(mockWindow.unmaximize).toHaveBeenCalled();
         // The compositor mock triggers callback immediately in tests (LatertType.BEFORE_REDRAW)
-        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(true, 10, 10, 100, 100);
+        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(false, 10, 10, 100, 100);
     });
 
     it('should catch error on disconnect fail', () => {

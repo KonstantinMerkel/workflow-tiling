@@ -18,6 +18,34 @@ vi.mock('gi://GLib', () => ({
     }
 }));
 
+vi.mock('gi://St', () => ({
+    default: {
+        Widget: class {
+            constructor() {}
+            set_position() {}
+            set_size() {}
+            show() {}
+            hide() {}
+            destroy() {}
+            add_child() {}
+            remove_child() {}
+        }
+    }
+}));
+
+vi.mock('gi://Clutter', () => ({
+    default: {}
+}));
+
+vi.mock('gi://Gio', () => ({
+    default: {
+        Settings: class {
+            constructor() {}
+            get_string() { return 'yellow'; }
+        }
+    }
+}));
+
 const mockMonitorManager = {
     get_monitors: vi.fn(() => [
         { get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' },
@@ -38,7 +66,12 @@ global.backend = {
     get_monitor_manager: () => mockMonitorManager
 };
 global.display = {
-    get_primary_monitor: () => mockMonitorManager.get_primary_monitor()
+    get_primary_monitor: () => mockMonitorManager.get_primary_monitor(),
+    get_current_monitor: vi.fn(() => 0),
+    get_focus_window: vi.fn(() => null),
+    list_all_windows: vi.fn(() => []),
+    connect: vi.fn(),
+    disconnect: vi.fn()
 };
 global.workspace_manager = {
     get_active_workspace: vi.fn(() => ({
@@ -53,6 +86,10 @@ global.compositor = {
         }),
         remove: vi.fn()
     }))
+};
+global.get_pointer = vi.fn(() => [0, 0, 0]);
+global.window_group = {
+    add_child: vi.fn()
 };
 
 vi.mock('gi://Meta', () => ({
@@ -75,5 +112,16 @@ vi.mock('gi://Meta', () => ({
         get_backend: vi.fn(() => ({
             get_monitor_manager: () => mockMonitorManager
         }))
+    }
+}));
+
+vi.mock('gi://Shell', () => ({
+    default: {}
+}));
+
+vi.mock('resource:///org/gnome/shell/ui/main.js', () => ({
+    wm: {
+        addKeybinding: vi.fn(),
+        removeKeybinding: vi.fn()
     }
 }));

@@ -1,18 +1,39 @@
+[![Project Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](https://github.com/KonstantinMerkel/workflow-tiling)
+
 # Workflow Tiling
 
-A deterministic three-window auto-tiler extension for GNOME Shell (GNOME 50+).
+A deterministic customizable auto-tiler extension for GNOME Shell (GNOME 50+).
 
 ## Features
-- **Deterministic Escalation**: Automatically tiles windows in a fixed 1-2-3 sequence.
+- **Deterministic Escalation**: Automatically tiles windows in a customizable geometric sequence.
 - **Multi-Monitor Support**: Each monitor tiles independently.
 - **Workspace Isolation**: Tiling states are unique to each GNOME workspace.
 - **Stability Focused**: Uses WindowWrapper object modeling and compositor-native synchronization (Meta.LaterType) to prevent race conditions and Shell crashes.
 
-## Tiling Layouts
-1. **1 Window**: Full Screen (100%).
-2. **2 Windows**: 50/50 Vertical Split.
-3. **3 Windows**: 50% Left Master, 25%/25% Stacked Right.
-4. **4+ Windows**: Floating management fallback.
+## Recommended Extensions
+Workflow Tiling does not natively draw an active window border. For visual indication of the focused window, it is highly recommended to use an extension like **P7 Border** 
+
+## Custom Layouts
+Layout transitions are configured via JSON string, supporting custom window counts and sizes.
+
+Optional `id` (1-indexed) integer properties in the JSON structure define how windows transition between states. It is required for all elements:
+
+```json
+{
+  "1": [
+    {"x": 0, "y": 0, "w": 100, "h": 100, "id": 1}
+  ],
+  "2": [
+    {"x": 0, "y": 0, "w": 50, "h": 100, "id": 1},
+    {"x": 50, "y": 0, "w": 50, "h": 100, "id": 2}
+  ],
+  "3": [
+    {"x": 0, "y": 0, "w": 33.33, "h": 100, "id": 1},
+    {"x": 33.33, "y": 0, "w": 33.33, "h": 100, "id": 3},
+    {"x": 66.66, "y": 0, "w": 33.34, "h": 100, "id": 2}
+  ]
+}
+```
 
 ## Development
 
@@ -20,12 +41,11 @@ A deterministic three-window auto-tiler extension for GNOME Shell (GNOME 50+).
 Unit tests are written using **Vitest**.
 ```bash
 npm install
-npm test
+make test
 ```
 
 ### Installation
-To link the extension to your local GNOME Shell directory:
+To deploy the extension to your local GNOME Shell directory:
 ```bash
-ln -s $(pwd) ~/.local/share/gnome-shell/extensions/workflow-tiling@konstantin.dev
-gnome-extensions enable workflow-tiling@konstantin.dev
+make install
 ```

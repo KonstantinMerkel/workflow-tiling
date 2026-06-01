@@ -61,12 +61,12 @@ describe('Logger', () => {
     it('should log debug when DEBUG is true', () => {
         Logger.DEBUG = true;
         Logger.debug('test debug');
-        expect(console.debug).toHaveBeenCalledWith('WorkflowTiling: [DEBUG] test debug');
+        expect(console.log).toHaveBeenCalledWith('WorkflowTiling: [DEBUG] test debug');
     });
 
     it('should not log debug when DEBUG is false', () => {
         Logger.DEBUG = false;
         Logger.debug('test debug');
-        expect(console.debug).not.toHaveBeenCalled();
+        expect(console.log).not.toHaveBeenCalledWith('WorkflowTiling: [DEBUG] test debug');
     });
 });
