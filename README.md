@@ -1,3 +1,5 @@
+[![Project Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](https://github.com/KonstantinMerkel/workflow-tiling)
+
 # Workflow Tiling
 
 A deterministic customizable auto-tiler extension for GNOME Shell (GNOME 50+).
