@@ -1,8 +1,19 @@
 [![Project Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](https://github.com/KonstantinMerkel/workflow-tiling)
 
 # Workflow Tiling
-
 A deterministic customizable auto-tiler extension for GNOME Shell (GNOME 50+).
+
+## Summary
+- [Workflow Tiling](#workflow-tiling)
+  - [Summary](#summary)
+  - [Features](#features)
+  - [Customizations](#customizations)
+    - [Custom Layouts](#custom-layouts)
+  - [Development](#development)
+    - [Contributing](#contributing)
+    - [Running Tests](#running-tests)
+    - [Installation](#installation)
+  - [Recommended Extensions](#recommended-extensions)
 
 ## Features
 - **Deterministic Escalation**: Automatically tiles windows in a customizable geometric sequence.
@@ -10,14 +21,15 @@ A deterministic customizable auto-tiler extension for GNOME Shell (GNOME 50+).
 - **Workspace Isolation**: Tiling states are unique to each GNOME workspace.
 - **Stability Focused**: Uses WindowWrapper object modeling and compositor-native synchronization (Meta.LaterType) to prevent race conditions and Shell crashes.
 
-## Recommended Extensions
-Workflow Tiling does not natively draw an active window border. For visual indication of the focused window, it is highly recommended to use an extension like **P7 Border** 
+## Customizations
 
-## Custom Layouts
+ToDo: Reference the `Gnome Extension Manager` > `Workflow Tiling` > Settings
+ToDo: Hint/Explain behavior with duplicate shortcuts
+
+### Custom Layouts
 Layout transitions are configured via JSON string, supporting custom window counts and sizes.
 
 Optional `id` (1-indexed) integer properties in the JSON structure define how windows transition between states. It is required for all elements:
-
 ```json
 {
   "1": [
@@ -37,6 +49,9 @@ Optional `id` (1-indexed) integer properties in the JSON structure define how wi
 
 ## Development
 
+### Contributing
+see [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ### Running Tests
 Unit tests are written using **Vitest**.
 ```bash
@@ -49,3 +64,6 @@ To deploy the extension to your local GNOME Shell directory:
 ```bash
 make install
 ```
+
+## Recommended Extensions
+Workflow Tiling does not natively draw an active window border. For visual indication of the focused window, it is highly recommended to use an extension like **P7 Border** 
