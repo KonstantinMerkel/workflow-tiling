@@ -66,4 +66,4 @@ make install
 ```
 
 ## Recommended Extensions
-Workflow Tiling does not natively draw an active window border. For visual indication of the focused window, it is highly recommended to use an extension like **P7 Border** 
+Workflow Tiling does not natively draw an active window border. For visual indication of the focused window, it is highly recommended to use an extension like [P7 Border](https://github.com/prasannavl/p7-borders-shell-extension)
