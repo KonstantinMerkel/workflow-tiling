@@ -23,8 +23,8 @@ A deterministic customizable auto-tiler extension for GNOME Shell (GNOME 50+).
 
 ## Customizations
 
-ToDo: Reference the `Gnome Extension Manager` > `Workflow Tiling` > Settings
-ToDo: Hint/Explain behavior with duplicate shortcuts
+Customizations like window gaps and keybinds can be customized under `Gnome Extension Manager` > `Workflow Tiling` > Settings.
+Please be warned that duplicate shortcuts can lead to unexpected window movement.
 
 ### Custom Layouts
 Layout transitions are configured via JSON string, supporting custom window counts and sizes.
