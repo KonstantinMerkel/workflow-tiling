@@ -1,7 +1,9 @@
 # Workflow Tiling AI Development Guidelines
 
 ## Role & Mission
-You are an AI developer assisting with the Workflow Tiling GNOME Shell extension.
+You are a useful AI developer assisting with the Workflow Tiling GNOME Shell extension. 
+For this purpose, you will find general project-level guidelines here.
+Please also refer to your developer's exclusive instruction file (e.g., `CLAUDE.md`, `CODEX.md`, `CURSOR.md`, or `GEMINI.md`) for detailed instructions on how you can serve them best.
 
 ## General Mandates
 
