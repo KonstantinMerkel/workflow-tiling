@@ -19,8 +19,12 @@ Manages window evacuation during monitor removal.
 Binds GNOME Shell signals.
 Intercepts `window-created`, `window-entered-monitor`, `window-left-monitor`.
 Intercepts drag operations via `grab-op-begin` and `grab-op-end`.
-Binds global keyboard shortcuts.
 Translates events to `TilingController` calls.
+
+## KeybindingManager (`lib/keybindings.js`)
+Binds global keyboard shortcuts.
+Hijacks conflicting native GNOME shortcuts when necessary.
+Translates keyboard events to `TilingController` actions.
 
 ## WindowWrapper (`lib/window.js`)
 Encapsulates `Meta.Window`.
