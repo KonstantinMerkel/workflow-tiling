@@ -320,7 +320,9 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
             { id: 'minimize', label: 'Minimize Window', origin: 'System', st: wmSettings },
             { id: 'maximize', label: 'Maximize Window', origin: 'System', st: wmSettings },
             { id: 'unmaximize', label: 'Unmaximize Window', origin: 'System', st: wmSettings },
-            { id: 'toggle-fullscreen', label: 'Toggle Fullscreen', origin: 'System', st: wmSettings }
+            { id: 'toggle-fullscreen', label: 'Toggle Fullscreen', origin: 'System', st: wmSettings },
+            { id: 'shortcut-toggle-maximize', label: 'Toggle Maximize Override (Active)', origin: '', st: settings },
+            { id: 'shortcut-toggle-fullscreen', label: 'Toggle Fullscreen Override (Active)', origin: '', st: settings }
         ].forEach(s => stateGroup.add(createRow(s.st, s.id, s.label, s.origin)));
         shortcutsPage.add(stateGroup);
 
