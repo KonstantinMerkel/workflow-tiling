@@ -23,8 +23,15 @@ Translates events to `TilingController` calls.
 
 ## KeybindingManager (`lib/keybindings.js`)
 Binds global keyboard shortcuts.
-Hijacks conflicting native GNOME shortcuts when necessary.
+Hijacks hardcoded native GNOME shortcuts via C-handlers (`default` mode).
+Delegates custom shortcut conflict resolution to `ShadowManager`.
 Translates keyboard events to `TilingController` actions.
+
+## ShadowManager (`lib/shadows.js`)
+Implements Dynamic Schema Shadowing.
+Scans GNOME native schemas for custom shortcut conflicts.
+Temporarily unbinds conflicting native keys to allow `Main.wm.addKeybinding` to succeed.
+Persists original keys in `shadowed-keybindings` state for perfect restoration on disable.
 
 ## WindowWrapper (`lib/window.js`)
 Encapsulates `Meta.Window`.
