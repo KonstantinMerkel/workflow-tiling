@@ -162,5 +162,11 @@
       <description>JSON string defining custom window layouts.</description>
     </key>
 
+    <key name="shadowed-keybindings" type="s">
+      <default><![CDATA['{}']]></default>
+      <summary>Shadowed Native Keybindings</summary>
+      <description>Internal state tracking GNOME native keybindings that have been temporarily removed to prevent conflicts with custom shortcuts.</description>
+    </key>
+
   </schema>
 </schemalist>
