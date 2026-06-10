@@ -3,6 +3,7 @@ import { TilingController } from './lib/controller.js';
 import { SignalListener } from './lib/signals.js';
 import { SettingsManager } from './lib/settings.js';
 import { Logger } from './lib/logger.js';
+import { KeybindingManager } from './lib/keybindings.js';
 
 /**
  * Main extension class. Manages controller and signals.
@@ -16,6 +17,7 @@ export default class WorkflowTilingExtension extends Extension {
         this._settings = new SettingsManager(this);
         this._controller = new TilingController(this._settings);
         this._signals = new SignalListener(this._controller);
+        this._keybindings = new KeybindingManager(this._controller);
         
         this._isActive = false;
         this._wasSuspended = false;
@@ -27,7 +29,7 @@ export default class WorkflowTilingExtension extends Extension {
         };
 
         this._settings.onKeybindingsChanged = () => {
-            if (this._isActive) this._signals.rebindKeybindings();
+            if (this._isActive) this._keybindings.rebindAll();
         }
 
         this._applyCustomLayouts();
@@ -46,6 +48,7 @@ export default class WorkflowTilingExtension extends Extension {
             Main.notifyError('Workflow Tiling', `Invalid layouts JSON. Suspending extension.\n${e.message}`);
             if (this._isActive) {
                 this._signals.unbind();
+                this._keybindings.unbindAll();
                 this._controller.clear();
                 this._isActive = false;
                 this._wasSuspended = true;
@@ -57,6 +60,7 @@ export default class WorkflowTilingExtension extends Extension {
 
         if (!this._isActive) {
             this._signals.bind();
+            this._keybindings.bindAll();
             this._isActive = true;
             if (this._wasSuspended) {
                 Main.notify('Workflow Tiling', 'Valid layout provided. Extension resumed.');
@@ -68,10 +72,14 @@ export default class WorkflowTilingExtension extends Extension {
 
     disable() {
         Logger.info(`Disabling ${this.metadata.name}`);
-        if (this._isActive) this._signals.unbind();
+        if (this._isActive) {
+            this._signals.unbind();
+            this._keybindings.unbindAll();
+        }
         if (this._settings) this._settings.destroy();
         if (this._controller) this._controller.clear();
         this._signals = null;
+        this._keybindings = null;
         this._settings = null;
         this._controller = null;
         this._isActive = false;
