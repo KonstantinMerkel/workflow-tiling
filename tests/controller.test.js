@@ -46,6 +46,7 @@ describe('TilingController', () => {
             unmaximize: vi.fn(),
             maximized_horizontally: false,
             maximized_vertically: false,
+            is_fullscreen: vi.fn(() => false),
             minimized: false,
             connect: vi.fn(() => 123),
             disconnect: vi.fn(),
@@ -344,7 +345,7 @@ describe('TilingController', () => {
     it('should gracefully handle errors in tilingRequest', () => {
         const win = createMockWindow(1, null, 0);
         // Force an error by mocking global.workspace_manager to throw
-        vi.mocked(global.workspace_manager.get_active_workspace).mockImplementation(() => {
+        vi.mocked(global.workspace_manager.get_active_workspace).mockImplementationOnce(() => {
             throw new Error('test error');
         });
         
@@ -542,6 +543,61 @@ describe('TilingController', () => {
             
             expect(controller.dragManager._revertVisualSwap).toHaveBeenCalled();
             expect(controller.dragManager._activeDrag.lastHoveredSlot).toBe(-1);
+        });
+    });
+
+    describe('Overrides', () => {
+        it('should toggle override for maximize', () => {
+            const win = createMockWindow(1, { id: 'ws1' }, 0);
+            global.display.get_focus_window = vi.fn(() => win);
+            win.maximize = vi.fn();
+            
+            controller.toggleOverrideActiveWindow('maximize');
+            expect(controller._authorizedOverrides.has(win)).toBe(true);
+            expect(win.maximize).toHaveBeenCalledWith(3);
+
+            // Toggle off
+            win.maximized_horizontally = true;
+            win.maximized_vertically = true;
+            controller.toggleOverrideActiveWindow('maximize');
+            expect(controller._authorizedOverrides.has(win)).toBe(false);
+            expect(win.unmaximize).toHaveBeenCalledWith(3);
+        });
+
+        it('should toggle override for fullscreen', () => {
+            const win = createMockWindow(1, { id: 'ws1' }, 0);
+            global.display.get_focus_window = vi.fn(() => win);
+            win.make_fullscreen = vi.fn();
+            win.unmake_fullscreen = vi.fn();
+            
+            controller.toggleOverrideActiveWindow('fullscreen');
+            expect(controller._authorizedOverrides.has(win)).toBe(true);
+            expect(win.make_fullscreen).toHaveBeenCalled();
+
+            // Toggle off
+            win.is_fullscreen = vi.fn(() => true);
+            controller.toggleOverrideActiveWindow('fullscreen');
+            expect(controller._authorizedOverrides.has(win)).toBe(false);
+            expect(win.unmake_fullscreen).toHaveBeenCalled();
+        });
+
+        it('should clear overrides on monitor', () => {
+            const ws = { id: 'ws1' };
+            global.workspace_manager.get_active_workspace = vi.fn(() => ws);
+            const win = createMockWindow(1, ws, 0);
+            win.maximized_horizontally = true;
+            win.maximized_vertically = true;
+            win.is_fullscreen = vi.fn(() => true);
+            win.unmake_fullscreen = vi.fn();
+            
+            controller.tilingRequest(win);
+            controller._authorizedOverrides.add(win);
+            
+            controller._clearOverridesOnMonitor(0);
+            
+            expect(controller._authorizedOverrides.has(win)).toBe(false);
+            expect(win.unmaximize).toHaveBeenCalledWith(3);
+            expect(win.unmake_fullscreen).toHaveBeenCalled();
         });
     });
 });
