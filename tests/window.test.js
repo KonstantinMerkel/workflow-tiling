@@ -19,6 +19,7 @@ describe('WindowWrapper', () => {
             unmaximize: vi.fn(),
             maximized_horizontally: false,
             maximized_vertically: false,
+            is_fullscreen: vi.fn(() => false),
         };
 
         mockController = {
@@ -145,5 +146,31 @@ describe('WindowWrapper', () => {
             wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
             expect(() => wrapper.destroy()).not.toThrow();
         });
+    });
+
+    it('should correctly identify active override', () => {
+        mockController._authorizedOverrides = new Set([mockWindow]);
+        const wrapper = new WindowWrapper(mockWindow, mockController);
+        expect(wrapper.isOverrideActive()).toBe(true);
+
+        mockController._authorizedOverrides = new Set();
+        expect(wrapper.isOverrideActive()).toBe(false);
+    });
+
+    it('should skip applyGeometry if override is active', () => {
+        mockController._authorizedOverrides = new Set([mockWindow]);
+        const wrapper = new WindowWrapper(mockWindow, mockController);
+        wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
+        expect(mockWindow.move_resize_frame).not.toHaveBeenCalled();
+    });
+
+    it('should unmake fullscreen before applying geometry if fullscreen', () => {
+        mockWindow.is_fullscreen = vi.fn(() => true);
+        mockWindow.unmake_fullscreen = vi.fn();
+        const wrapper = new WindowWrapper(mockWindow, mockController);
+        wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
+        
+        expect(mockWindow.unmake_fullscreen).toHaveBeenCalled();
+        expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(false, 10, 10, 100, 100);
     });
 });
