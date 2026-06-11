@@ -108,6 +108,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         const settings = this.getSettings();
 
         const page = new Adw.PreferencesPage({ title: 'General', icon_name: 'preferences-system-symbolic' });
+        const shortcutsPage = new Adw.PreferencesPage({ title: 'Keyboard Shortcuts', icon_name: 'input-keyboard-symbolic' });
         
         // --- Gaps Group ---
         const gapsGroup = new Adw.PreferencesGroup({ title: 'Gaps' });
@@ -152,7 +153,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
 
 
         // --- Core Keybindings Group ---
-        const keysGroup = new Adw.PreferencesGroup({ title: 'Keybindings' });
+        const keysGroup = new Adw.PreferencesGroup({ title: 'Window Position Swapping' });
         const modeRow = new Adw.ComboRow({ 
             title: 'Mode', 
             subtitle: '',
@@ -188,10 +189,10 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         settings.connect('changed::keybindings-mode', updateVisibility);
         updateVisibility();
 
-        page.add(keysGroup);
+        shortcutsPage.add(keysGroup);
 
         // --- Focus Window Group ---
-        const focusGroup = new Adw.PreferencesGroup({ title: 'Focus Keybindings' });
+        const focusGroup = new Adw.PreferencesGroup({ title: 'Focus Navigation' });
         
         const focusModeRow = new Adw.ComboRow({ 
             title: 'Mode', 
@@ -228,10 +229,10 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         settings.connect('changed::focus-window-mode', updateFocusVisibility);
         updateFocusVisibility();
 
-        page.add(focusGroup);
+        shortcutsPage.add(focusGroup);
 
         // --- Additional Batch Shortcuts Group ---
-        const batchKeysGroup = new Adw.PreferencesGroup({ title: 'Batch Operations' });
+        const batchKeysGroup = new Adw.PreferencesGroup({ title: 'Workspace & Monitor Actions' });
 
         const closeMonitorRow = new ShortcutRow(settings, 'shortcut-close-monitor', 'Close Monitor Windows');
         batchKeysGroup.add(closeMonitorRow);
@@ -254,9 +255,10 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
             { id: 'shortcut-unminimize-workspace', label: 'Unminimize Workspace' }
         ].forEach(s => batchKeysGroup.add(new ShortcutRow(settings, s.id, s.label)));
 
-        page.add(batchKeysGroup);
+        shortcutsPage.add(batchKeysGroup);
 
         window.add(page);
+        window.add(shortcutsPage);
 
         // --- Custom Layouts (JSON debug) Page ---
         const layoutPage = new LayoutEditorPage(settings);
