@@ -216,6 +216,12 @@ describe('WorkspaceManager', () => {
 
     beforeEach(() => {
         global.get_current_time = vi.fn(() => 1234);
+        global.workspace_manager = {
+            get_active_workspace: vi.fn(),
+            get_active_workspace_index: vi.fn(() => 0),
+            get_workspace_by_index: vi.fn(),
+            n_workspaces: 4
+        };
         controller = {
             setBatchMode: vi.fn(),
             retileAll: vi.fn(),
@@ -258,5 +264,181 @@ describe('WorkspaceManager', () => {
         expect(controller.setBatchMode).toHaveBeenCalledWith(false);
         expect(controller.hydrate).toHaveBeenCalledWith(ws);
         expect(win1.activate).toHaveBeenCalledWith(1234);
+    });
+
+    it('should close all windows on a monitor', () => {
+        const win1 = { delete: vi.fn(), get_monitor: () => 0, is_skip_taskbar: () => false, minimized: false };
+        const win2 = { delete: vi.fn(), get_monitor: () => 0, is_skip_taskbar: () => false, minimized: false };
+        const win3 = { delete: vi.fn(), get_monitor: () => 1, is_skip_taskbar: () => false, minimized: false };
+        const ws = { list_windows: () => [win1, win2, win3] };
+        global.workspace_manager.get_active_workspace.mockReturnValue(ws);
+
+        manager.closeMonitorWindows(0, false);
+        
+        expect(controller.setBatchMode).toHaveBeenCalledWith(true);
+        expect(controller.setBatchMode).toHaveBeenCalledWith(false);
+        expect(win1.delete).toHaveBeenCalled();
+        expect(win2.delete).toHaveBeenCalled();
+        expect(win3.delete).not.toHaveBeenCalled();
+        expect(controller.hydrate).toHaveBeenCalledWith(ws);
+    });
+
+    it('should switch monitors for all windows', () => {
+        const win1 = { move_to_monitor: vi.fn(), get_monitor: () => 0, minimized: false, is_skip_taskbar: () => false };
+        const win2 = { move_to_monitor: vi.fn(), get_monitor: () => 1, minimized: false, is_skip_taskbar: () => false };
+        const ws = { list_windows: () => [win1, win2] };
+        global.workspace_manager.get_active_workspace.mockReturnValue(ws);
+
+        const mockManager = {
+            get_logical_monitors: () => [{}, {}]
+        };
+        global.backend = {
+            get_monitor_manager: () => mockManager
+        };
+
+        manager.switchMonitors(0);
+        
+        expect(controller.setBatchMode).toHaveBeenCalledWith(true);
+        expect(controller.setBatchMode).toHaveBeenCalledWith(false);
+        expect(win1.move_to_monitor).toHaveBeenCalledWith(1);
+        expect(win2.move_to_monitor).toHaveBeenCalledWith(0);
+        expect(controller.hydrate).toHaveBeenCalledWith(ws);
+    });
+
+    it('should port all monitor windows to another workspace', () => {
+        const win1 = { change_workspace: vi.fn(), get_monitor: () => 0, minimized: false, is_skip_taskbar: () => false };
+        const win2 = { change_workspace: vi.fn(), get_monitor: () => 1, minimized: false, is_skip_taskbar: () => false };
+        const sourceWorkspace = { list_windows: () => [win1, win2] };
+        const targetWorkspace = { list_windows: () => [] };
+        
+        global.workspace_manager.get_active_workspace.mockReturnValue(sourceWorkspace);
+        global.workspace_manager.get_workspace_by_index.mockReturnValue(targetWorkspace);
+
+        manager.portMonitorToWorkspace(0, 'right');
+        
+        expect(controller.setBatchMode).toHaveBeenCalledWith(true);
+        expect(controller.setBatchMode).toHaveBeenCalledWith(false);
+        expect(win1.change_workspace).toHaveBeenCalledWith(targetWorkspace);
+        expect(win2.change_workspace).not.toHaveBeenCalled();
+        expect(controller.hydrate).toHaveBeenCalledWith(sourceWorkspace);
+        expect(controller.hydrate).toHaveBeenCalledWith(targetWorkspace);
+    });
+});
+
+describe('WorkspaceLayout Cross-Monitor Fallback', () => {
+    const defaultJson = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
+    const escalator = LayoutParser.parse(defaultJson);
+
+    describe('_findClosestBoundaryWindow', () => {
+        it('should choose the window with highest overlap on adjacent edge', () => {
+            const layout = new WorkspaceLayout({}, escalator);
+            const targetTracker = {
+                size: 2,
+                windows: [
+                    { get_frame_rect: () => ({ x: 1000, y: 0, width: 500, height: 400 }) },
+                    { get_frame_rect: () => ({ x: 1000, y: 300, width: 500, height: 700 }) }
+                ]
+            };
+            const sourceRect = { x: 0, y: 100, width: 1000, height: 400 };
+            
+            const best = layout._findClosestBoundaryWindow(targetTracker, 'right', sourceRect);
+            expect(best).toBe(targetTracker.windows[0]);
+        });
+
+        it('should resolve ties using top-most/right-most tie breakers', () => {
+            const layout = new WorkspaceLayout({}, escalator);
+            const targetTrackerY = {
+                size: 2,
+                windows: [
+                    { get_frame_rect: () => ({ x: 1000, y: 200, width: 500, height: 300 }) },
+                    { get_frame_rect: () => ({ x: 1000, y: 100, width: 500, height: 300 }) }
+                ]
+            };
+            const sourceRectY = { x: 0, y: 200, width: 1000, height: 200 };
+            const bestY = layout._findClosestBoundaryWindow(targetTrackerY, 'right', sourceRectY);
+            expect(bestY).toBe(targetTrackerY.windows[1]);
+
+            const targetTrackerX = {
+                size: 2,
+                windows: [
+                    { get_frame_rect: () => ({ x: 100, y: 1000, width: 300, height: 500 }) },
+                    { get_frame_rect: () => ({ x: 200, y: 1000, width: 300, height: 500 }) }
+                ]
+            };
+            const sourceRectX = { x: 200, y: 0, width: 200, height: 1000 };
+            const bestX = layout._findClosestBoundaryWindow(targetTrackerX, 'down', sourceRectX);
+            expect(bestX).toBe(targetTrackerX.windows[1]);
+        });
+    });
+
+    it('should fall back to cross-monitor focus when intra-monitor search fails', () => {
+        const mockMonitorManager = {
+            getMonitorIndex: vi.fn(id => id === 'monitor-0' ? 0 : 1),
+            getMonitorInDirection: vi.fn((idx, dir) => idx === 0 && dir === 'right' ? 1 : -1),
+            getMonitorId: vi.fn(idx => idx === 0 ? 'monitor-0' : 'monitor-1')
+        };
+        const controller = {
+            escalator: escalator,
+            monitorManager: mockMonitorManager
+        };
+        const layout = new WorkspaceLayout({}, controller);
+
+        const win0 = {
+            get_monitor: () => 0,
+            get_frame_rect: () => ({ x: 0, y: 0, width: 1000, height: 1000 })
+        };
+        const win1 = {
+            get_monitor: () => 1,
+            get_frame_rect: () => ({ x: 1000, y: 0, width: 1000, height: 1000 }),
+            activate: vi.fn()
+        };
+
+        layout.trackWindow(win0, 'monitor-0');
+        layout.trackWindow(win1, 'monitor-1');
+
+        const result = layout.focusWindowDirection('monitor-0', win0, 'right');
+        expect(result).toBe(true);
+        expect(win1.activate).toHaveBeenCalled();
+    });
+
+    it('should fall back to cross-monitor movement when intra-monitor swap fails', () => {
+        const mockMonitorManager = {
+            getMonitorIndex: vi.fn(id => id === 'monitor-0' ? 0 : 1),
+            getMonitorInDirection: vi.fn((idx, dir) => idx === 0 && dir === 'right' ? 1 : -1),
+            getMonitorId: vi.fn(idx => idx === 0 ? 'monitor-0' : 'monitor-1')
+        };
+        const controller = {
+            escalator: escalator,
+            monitorManager: mockMonitorManager,
+            _windowWrappers: new Map(),
+            _scheduleRetile: vi.fn()
+        };
+        const ws = { index: () => 0 };
+        const layout = new WorkspaceLayout(ws, controller);
+
+        const win0 = {
+            get_monitor: () => 0,
+            get_frame_rect: () => ({ x: 0, y: 0, width: 1000, height: 1000 }),
+            move_to_monitor: vi.fn()
+        };
+        const wrapper0 = { monitorId: 'monitor-0', monitorIndex: 0 };
+        controller._windowWrappers.set(win0, wrapper0);
+
+        layout.trackWindow(win0, 'monitor-0');
+
+        const result = layout.moveWindowDirection('monitor-0', win0, 'right');
+        expect(result).toBe(true);
+        
+        const tracker0 = layout._getTracker('monitor-0');
+        const tracker1 = layout._getTracker('monitor-1');
+        expect(tracker0.getSlot(win0)).toBeUndefined();
+        expect(tracker1.getSlot(win0)).toBe(0);
+
+        expect(wrapper0.monitorId).toBe('monitor-1');
+        expect(wrapper0.monitorIndex).toBe(1);
+        expect(win0.move_to_monitor).toHaveBeenCalledWith(1);
+
+        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
+        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-1', 1);
     });
 });
