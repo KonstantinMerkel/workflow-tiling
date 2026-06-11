@@ -30,6 +30,7 @@ describe('MonitorManager', () => {
             _windowWrappers: new Map(),
             _restoringWindows: new Set(),
             updateWindowWrapperMonitor: vi.fn(),
+            addRestoringWindow: vi.fn(),
             tilingRequest: vi.fn()
         };
 
@@ -44,53 +45,94 @@ describe('MonitorManager', () => {
         monitorManager.initializeMonitorState();
     });
 
-    it('should close all windows on a monitor', () => {
-        const win1 = { delete: vi.fn(), get_monitor: () => 0, is_skip_taskbar: () => false, minimized: false };
-        const win2 = { delete: vi.fn(), get_monitor: () => 0, is_skip_taskbar: () => false, minimized: false };
-        const win3 = { delete: vi.fn(), get_monitor: () => 1, is_skip_taskbar: () => false, minimized: false };
-        const ws = { list_windows: () => [win1, win2, win3] };
-        global.workspace_manager.get_active_workspace.mockReturnValue(ws);
 
-        monitorManager.closeMonitorWindows(0, false);
-        
-        expect(controller.setBatchMode).toHaveBeenCalledWith(true);
-        expect(controller.setBatchMode).toHaveBeenCalledWith(false);
-        expect(win1.delete).toHaveBeenCalled();
-        expect(win2.delete).toHaveBeenCalled();
-        expect(win3.delete).not.toHaveBeenCalled();
-        expect(controller.hydrate).toHaveBeenCalled();
+
+    it('should evacuate window when its monitor is disconnected', () => {
+        const mockWin = {
+            unmanaged: false,
+            minimized: false,
+            minimize: vi.fn()
+        };
+        const mockWorkspace = { index: () => 0 };
+        const mockWrapper = {
+            title: 'Test Window',
+            monitorId: 'monitor-1',
+            workspace: mockWorkspace
+        };
+
+        const manager = Meta.Backend.get_monitor_manager();
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] }
+        ]);
+
+        const mockTracker = {
+            getSlot: vi.fn().mockReturnValue(2)
+        };
+        const mockGrid = {
+            _getTracker: vi.fn().mockReturnValue(mockTracker),
+            untrackWindow: vi.fn()
+        };
+        controller.workspaceManager.getLayout.mockReturnValue(mockGrid);
+
+        const evacuated = monitorManager.checkEvacuation(mockWin, mockWrapper, 'monitor-0', mockWorkspace);
+
+        expect(evacuated).toBe(true);
+        expect(mockWin.minimize).toHaveBeenCalled();
+        expect(mockGrid._getTracker).toHaveBeenCalledWith('monitor-1');
+        expect(mockGrid.untrackWindow).toHaveBeenCalledWith(mockWin, 'monitor-1');
+        expect(monitorManager.isEvacuated(mockWin)).toBe(true);
     });
 
-    it('should switch monitors for all windows', () => {
-        const win1 = { move_to_monitor: vi.fn(), get_monitor: () => 0, minimized: false, is_skip_taskbar: () => false };
-        const win2 = { move_to_monitor: vi.fn(), get_monitor: () => 1, minimized: false, is_skip_taskbar: () => false };
-        const ws = { list_windows: () => [win1, win2] };
-        global.workspace_manager.get_active_workspace.mockReturnValue(ws);
+    it('should restore evacuated window when its monitor is reconnected', () => {
+        const mockWin = {
+            unmanaged: false,
+            minimized: true,
+            unminimize: vi.fn(),
+            move_to_monitor: vi.fn()
+        };
+        const mockWorkspace = { index: () => 0 };
+        const mockInfo = {
+            monitorId: 'monitor-1',
+            workspace: mockWorkspace,
+            slot: 2
+        };
+        monitorManager._evacuatedWindows.set(mockWin, mockInfo);
 
-        monitorManager.switchMonitors(0, 1);
-        
-        expect(controller.setBatchMode).toHaveBeenCalledWith(true);
-        expect(controller.setBatchMode).toHaveBeenCalledWith(false);
-        expect(win1.move_to_monitor).toHaveBeenCalledWith(1);
-        expect(win2.move_to_monitor).toHaveBeenCalledWith(0);
+        monitorManager._lastMonitorCount = 1;
+        monitorManager._knownMonitorIds = new Set(['monitor-0']);
+
+        const manager = Meta.Backend.get_monitor_manager();
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] },
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }] }
+        ]);
+
+        monitorManager.handleMonitorsChanged();
+
+        expect(mockWin.move_to_monitor).toHaveBeenCalledWith(1);
+        expect(mockWin.unminimize).toHaveBeenCalled();
+        expect(controller.updateWindowWrapperMonitor).toHaveBeenCalledWith(mockWin, 'monitor-1', 1);
+        expect(controller.addRestoringWindow).toHaveBeenCalledWith(mockWin, 2);
+        expect(monitorManager.isEvacuated(mockWin)).toBe(false);
         expect(controller.hydrate).toHaveBeenCalled();
+        expect(monitorManager._lastMonitorCount).toBe(2);
+        expect(monitorManager._knownMonitorIds.has('monitor-1')).toBe(true);
     });
 
-    it('should port all monitor windows to another workspace', () => {
-        const win1 = { change_workspace: vi.fn(), get_monitor: () => 0, minimized: false, is_skip_taskbar: () => false };
-        const win2 = { change_workspace: vi.fn(), get_monitor: () => 1, minimized: false, is_skip_taskbar: () => false };
-        const sourceWorkspace = { list_windows: () => [win1, win2] };
-        const targetWorkspace = { list_windows: () => [] };
-        
-        global.workspace_manager.get_active_workspace.mockReturnValue(sourceWorkspace);
-        global.workspace_manager.get_workspace_by_index.mockReturnValue(targetWorkspace);
+    it('should find adjacent monitor in direction using logical geometries', () => {
+        const manager = Meta.Backend.get_monitor_manager();
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { rect: { x: 0, y: 0, width: 1920, height: 1080 }, get_monitors: () => [] },
+            { rect: { x: 1920, y: 0, width: 1920, height: 1080 }, get_monitors: () => [] }
+        ]);
 
-        monitorManager.portMonitorToWorkspace(0, 'right');
-        
-        expect(controller.setBatchMode).toHaveBeenCalledWith(true);
-        expect(controller.setBatchMode).toHaveBeenCalledWith(false);
-        expect(win1.change_workspace).toHaveBeenCalledWith(targetWorkspace);
-        expect(win2.change_workspace).not.toHaveBeenCalled();
-        expect(controller.hydrate).toHaveBeenCalled();
+        const targetRight = monitorManager.getMonitorInDirection(0, 'right');
+        expect(targetRight).toBe(1);
+
+        const targetLeft = monitorManager.getMonitorInDirection(1, 'left');
+        expect(targetLeft).toBe(0);
+
+        const targetUp = monitorManager.getMonitorInDirection(0, 'up');
+        expect(targetUp).toBe(-1);
     });
 });
