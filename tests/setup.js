@@ -76,6 +76,7 @@ global.display = {
     get_current_monitor: vi.fn(() => 0),
     get_focus_window: vi.fn(() => null),
     list_all_windows: vi.fn(() => []),
+    get_monitor_index_for_rect: vi.fn(() => -1),
     connect: vi.fn(),
     disconnect: vi.fn()
 };
