@@ -198,6 +198,24 @@ vi.mock('gi://Gtk', () => ({
                 Object.assign(this, params);
             }
         },
+        Label: class {
+            constructor(params) {
+                Object.assign(this, params);
+            }
+            add_css_class(cls) {}
+        },
+        Image: class {
+            constructor(params) {
+                Object.assign(this, params);
+            }
+            add_css_class(cls) {}
+        },
+        Box: class {
+            constructor(params) {
+                Object.assign(this, params);
+            }
+            append() {}
+        },
         StringList: {
             new(strings) {
                 return { strings };
@@ -340,10 +358,13 @@ describe('WorkflowTilingPreferences', () => {
         const shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
 
         expect(shortcutsPage).toBeDefined();
-        expect(shortcutsPage.groups).toHaveLength(3);
-        expect(shortcutsPage.groups[0].title).toBe('Window Position Swapping');
-        expect(shortcutsPage.groups[1].title).toBe('Focus Navigation');
-        expect(shortcutsPage.groups[2].title).toBe('Workspace & Monitor Actions');
+        expect(shortcutsPage.groups).toHaveLength(7);
+        expect(shortcutsPage.groups[1].title).toBe('Window Focus & Position');
+        expect(shortcutsPage.groups[2].title).toBe('Window State');
+        expect(shortcutsPage.groups[3].title).toBe('Workspace Operations');
+        expect(shortcutsPage.groups[4].title).toBe('Workspace Switching');
+        expect(shortcutsPage.groups[5].title).toBe('Moving to Workspace');
+        expect(shortcutsPage.groups[6].title).toBe('Monitor Actions');
     });
 
     it('should toggle JSON Layout Editor page dynamically when active notify fires', () => {
@@ -376,7 +397,7 @@ describe('WorkflowTilingPreferences', () => {
         beforeEach(() => {
             prefs.fillPreferencesWindow(mockWindow);
             shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
-            swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Position Swapping');
+            swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Focus & Position');
             testRow = swapGroup.rows.find(r => r.keyName === 'custom-move-window-left');
         });
 
@@ -483,13 +504,13 @@ describe('WorkflowTilingPreferences', () => {
         beforeEach(() => {
             prefs.fillPreferencesWindow(mockWindow);
             shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
-            swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Position Swapping');
+            swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Focus & Position');
             testRow = swapGroup.rows.find(r => r.keyName === 'custom-move-window-left');
         });
 
         it('should update keybinding row visibilities when mode changes', () => {
-            const modeRow = swapGroup.rows.find(r => r instanceof mockAdw.ComboRow);
-            const moveRows = swapGroup.rows.filter(r => r.keyName !== undefined); // ShortcutRows
+            const modeRow = swapGroup.rows.find(r => r instanceof mockAdw.ComboRow && r.title === 'Swap Mode');
+            const moveRows = swapGroup.rows.filter(r => r.keyName && r.keyName.startsWith('custom-move-window')); // ShortcutRows
 
             // Initial: default mode. Move rows should be hidden
             expect(moveRows.every(r => r.visible === false)).toBe(true);
@@ -511,7 +532,7 @@ describe('WorkflowTilingPreferences', () => {
         });
 
         it('should handle external settings modifications for keybindings mode visibility', () => {
-            const moveRows = swapGroup.rows.filter(r => r.keyName !== undefined);
+            const moveRows = swapGroup.rows.filter(r => r.keyName && r.keyName.startsWith('custom-move-window'));
 
             // Set via settings directly
             mockSettings.set_string('keybindings-mode', 'custom');
@@ -522,7 +543,7 @@ describe('WorkflowTilingPreferences', () => {
         });
 
         it('should handle invalid keybindings mode values gracefully', () => {
-            const moveRows = swapGroup.rows.filter(r => r.keyName !== undefined);
+            const moveRows = swapGroup.rows.filter(r => r.keyName && r.keyName.startsWith('custom-move-window'));
 
             // Set to invalid value
             mockSettings.set_string('keybindings-mode', 'invalid-mode-value');

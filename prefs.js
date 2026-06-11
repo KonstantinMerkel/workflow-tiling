@@ -75,10 +75,30 @@ const ShortcutRowMixin = {
 
 const ShortcutRow = GObject.registerClass(
 class ShortcutRow extends Adw.ActionRow {
-    _init(settings, keyName, title) {
+    _init(settings, keyName, title, origin = '') {
         super._init({ title });
         this.settings = settings;
         this.keyName = keyName;
+        this._onChangeCallback = null;
+
+        if (origin === 'System') {
+            const badgeBox = new Gtk.Box({ orientation: 0, spacing: 4, valign: 3 }); // 0: HORIZONTAL, 3: CENTER
+            const icon = new Gtk.Image({ icon_name: 'preferences-system-symbolic' });
+            icon.add_css_class('dim-label');
+            const lbl = new Gtk.Label({ label: origin, css_classes: ['dim-label', 'caption'] });
+            badgeBox.append(icon);
+            badgeBox.append(lbl);
+            badgeBox.margin_end = 12;
+            this.add_suffix(badgeBox);
+        }
+
+        this.warningIcon = new Gtk.Image({
+            icon_name: 'dialog-warning-symbolic',
+            valign: Gtk.Align.CENTER,
+            visible: false
+        });
+        this.warningIcon.add_css_class('warning');
+        this.add_suffix(this.warningIcon);
 
         this.shortcutLabel = new Gtk.ShortcutLabel({
             disabled_text: 'Disabled',
@@ -92,7 +112,17 @@ class ShortcutRow extends Adw.ActionRow {
         
         this.settings.connect(`changed::${this.keyName}`, () => {
             this.shortcutLabel.accelerator = this._getAccelerator();
+            if (this._onChangeCallback) this._onChangeCallback();
         });
+    }
+
+    setWarning(isWarning, tooltip = '') {
+        this.warningIcon.visible = isWarning;
+        this.warningIcon.tooltip_text = tooltip;
+    }
+
+    setOnChange(cb) {
+        this._onChangeCallback = cb;
     }
 
     _getAccelerator() {
@@ -151,51 +181,67 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         transitionGroup.add(transitionRow);
         page.add(transitionGroup);
 
+        const wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.keybindings' });
+        const allRows = [];
+        const updateConflicts = () => {
+            const accelMap = {};
+            const addAccel = (accel, source) => {
+                if (!accel) return;
+                if (!accelMap[accel]) accelMap[accel] = [];
+                accelMap[accel].push(source);
+            };
 
-        // --- Core Keybindings Group ---
-        const keysGroup = new Adw.PreferencesGroup({ title: 'Window Position Swapping' });
-        const modeRow = new Adw.ComboRow({ 
-            title: 'Mode', 
-            subtitle: '',
-            model: Gtk.StringList.new(['Default', 'Custom', 'Disabled']) 
-        });
-        const currentMode = settings.get_string('keybindings-mode');
-        modeRow.selected = currentMode === 'custom' ? 1 : (currentMode === 'disabled' ? 2 : 0);
-        modeRow.connect('notify::selected', () => {
-            let mode = 'default';
-            if (modeRow.selected === 1) mode = 'custom';
-            if (modeRow.selected === 2) mode = 'disabled';
-            settings.set_string('keybindings-mode', mode);
-        });
-        keysGroup.add(modeRow);
+            for (const row of allRows) {
+                if (!row.visible && row.keyName && row.keyName.startsWith('custom-')) {
+                    continue;
+                }
+                const accel = row._getAccelerator();
+                if (accel === 'disabled') continue;
+                addAccel(accel, row);
+            }
 
-        const moveRows = [
-            { id: 'custom-move-window-left', label: '  ↳ Move Window Left' },
-            { id: 'custom-move-window-right', label: '  ↳ Move Window Right' },
-            { id: 'custom-move-window-up', label: '  ↳ Move Window Up' },
-            { id: 'custom-move-window-down', label: '  ↳ Move Window Down' }
-        ].map(s => {
-            const row = new ShortcutRow(settings, s.id, s.label);
-            keysGroup.add(row);
-            return row;
-        });
+            const focusMode = settings.get_string('focus-window-mode');
+            if (focusMode === 'default') {
+                ['focus-window-left', 'focus-window-right', 'focus-window-up', 'focus-window-down'].forEach(k => {
+                    const val = settings.get_strv(k);
+                    if (val.length > 0) addAccel(val[0], 'focus-default');
+                });
+            }
 
-        const updateVisibility = () => {
-            const mode = settings.get_string('keybindings-mode');
-            modeRow.subtitle = mode === 'default' ? 'Default: <Super> + <Arrow_Keys>' : '';
-            const showCustom = mode === 'custom';
-            moveRows.forEach(r => r.visible = showCustom);
+            const swapMode = settings.get_string('keybindings-mode');
+            if (swapMode === 'default') {
+                ['move-window-left', 'move-window-right', 'move-window-up', 'move-window-down'].forEach(k => {
+                    const val = settings.get_strv(k);
+                    if (val.length > 0) addAccel(val[0], 'swap-default');
+                });
+            }
+
+            for (const row of allRows) {
+                if (!row.visible) {
+                    row.setWarning(false);
+                    continue;
+                }
+                const accel = row._getAccelerator();
+                if (accel && accel !== 'disabled' && accelMap[accel] && accelMap[accel].length > 1) {
+                    row.setWarning(true, 'Shortcut conflicts with another active shortcut');
+                } else {
+                    row.setWarning(false);
+                }
+            }
         };
-        settings.connect('changed::keybindings-mode', updateVisibility);
-        updateVisibility();
 
-        shortcutsPage.add(keysGroup);
+        const createRow = (st, id, label, origin = '') => {
+            const row = new ShortcutRow(st, id, label, origin);
+            row.setOnChange(updateConflicts);
+            allRows.push(row);
+            return row;
+        };
 
-        // --- Focus Window Group ---
-        const focusGroup = new Adw.PreferencesGroup({ title: 'Focus Navigation' });
+        // --- Focus & Position Group ---
+        const focusPositionGroup = new Adw.PreferencesGroup({ title: 'Window Focus & Position' });
         
         const focusModeRow = new Adw.ComboRow({ 
-            title: 'Mode', 
+            title: 'Focus Mode', 
             subtitle: '',
             model: Gtk.StringList.new(['Default', 'Custom', 'Disabled']) 
         });
@@ -207,7 +253,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
             if (focusModeRow.selected === 2) mode = 'disabled';
             settings.set_string('focus-window-mode', mode);
         });
-        focusGroup.add(focusModeRow);
+        focusPositionGroup.add(focusModeRow);
 
         const focusRows = [
             { id: 'custom-focus-window-left', label: '  ↳ Focus Window Left' },
@@ -215,8 +261,8 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
             { id: 'custom-focus-window-up', label: '  ↳ Focus Window Up' },
             { id: 'custom-focus-window-down', label: '  ↳ Focus Window Down' }
         ].map(s => {
-            const row = new ShortcutRow(settings, s.id, s.label);
-            focusGroup.add(row);
+            const row = createRow(settings, s.id, s.label);
+            focusPositionGroup.add(row);
             return row;
         });
 
@@ -226,16 +272,162 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
             const showCustom = mode === 'custom';
             focusRows.forEach(r => r.visible = showCustom);
         };
-        settings.connect('changed::focus-window-mode', updateFocusVisibility);
+        settings.connect('changed::focus-window-mode', () => { updateFocusVisibility(); updateConflicts(); });
         updateFocusVisibility();
 
-        shortcutsPage.add(focusGroup);
+        const modeRow = new Adw.ComboRow({ 
+            title: 'Swap Mode', 
+            subtitle: '',
+            model: Gtk.StringList.new(['Default', 'Custom', 'Disabled']) 
+        });
+        const currentMode = settings.get_string('keybindings-mode');
+        modeRow.selected = currentMode === 'custom' ? 1 : (currentMode === 'disabled' ? 2 : 0);
+        modeRow.connect('notify::selected', () => {
+            let mode = 'default';
+            if (modeRow.selected === 1) mode = 'custom';
+            if (modeRow.selected === 2) mode = 'disabled';
+            settings.set_string('keybindings-mode', mode);
+        });
+        focusPositionGroup.add(modeRow);
 
-        // --- Additional Batch Shortcuts Group ---
-        const batchKeysGroup = new Adw.PreferencesGroup({ title: 'Workspace & Monitor Actions' });
+        const moveRows = [
+            { id: 'custom-move-window-left', label: '  ↳ Swap Window Left' },
+            { id: 'custom-move-window-right', label: '  ↳ Swap Window Right' },
+            { id: 'custom-move-window-up', label: '  ↳ Swap Window Up' },
+            { id: 'custom-move-window-down', label: '  ↳ Swap Window Down' }
+        ].map(s => {
+            const row = createRow(settings, s.id, s.label);
+            focusPositionGroup.add(row);
+            return row;
+        });
 
-        const closeMonitorRow = new ShortcutRow(settings, 'shortcut-close-monitor', 'Close Monitor Windows');
-        batchKeysGroup.add(closeMonitorRow);
+        const updateVisibility = () => {
+            const mode = settings.get_string('keybindings-mode');
+            modeRow.subtitle = mode === 'default' ? 'Default: <Super> + <Arrow_Keys>' : '';
+            const showCustom = mode === 'custom';
+            moveRows.forEach(r => r.visible = showCustom);
+        };
+        settings.connect('changed::keybindings-mode', () => { updateVisibility(); updateConflicts(); });
+        updateVisibility();
+
+        shortcutsPage.add(new Adw.PreferencesGroup());
+        shortcutsPage.add(focusPositionGroup);
+
+        // --- Window State ---
+        const stateGroup = new Adw.PreferencesGroup({ title: 'Window State' });
+        [
+            { id: 'close', label: 'Close Window', origin: 'System', st: wmSettings },
+            { id: 'minimize', label: 'Minimize Window', origin: 'System', st: wmSettings },
+            { id: 'maximize', label: 'Maximize Window', origin: 'System', st: wmSettings },
+            { id: 'unmaximize', label: 'Unmaximize Window', origin: 'System', st: wmSettings },
+            { id: 'toggle-fullscreen', label: 'Toggle Fullscreen', origin: 'System', st: wmSettings }
+        ].forEach(s => stateGroup.add(createRow(s.st, s.id, s.label, s.origin)));
+        shortcutsPage.add(stateGroup);
+
+        // --- Workspace Operations ---
+        const wsOpsGroup = new Adw.PreferencesGroup({ title: 'Workspace Operations' });
+        wsOpsGroup.add(createRow(settings, 'shortcut-close-workspace', 'Close Workspace Windows'));
+        wsOpsGroup.add(createRow(settings, 'shortcut-unminimize-workspace', 'Unminimize Workspace'));
+        shortcutsPage.add(wsOpsGroup);
+
+        // --- Workspace Switching ---
+        const wsSwitchGroup = new Adw.PreferencesGroup({ title: 'Workspace Switching' });
+        wsSwitchGroup.add(createRow(wmSettings, 'switch-to-workspace-left', 'Switch to Workspace Left', 'System'));
+        wsSwitchGroup.add(createRow(wmSettings, 'switch-to-workspace-right', 'Switch to Workspace Right', 'System'));
+        
+        const wsSwitchModeRow = new Adw.ComboRow({ 
+            title: 'Numbered Workspaces', 
+            subtitle: '',
+            model: Gtk.StringList.new(['System Default', 'Edit', 'Disabled']) 
+        });
+        const wsSwitchModeStr = settings.get_string('workspace-switch-mode');
+        wsSwitchModeRow.selected = wsSwitchModeStr === 'custom' ? 1 : (wsSwitchModeStr === 'disabled' ? 2 : 0);
+        
+        const wsSwitchKeys = [];
+        for (let i = 1; i <= 4; i++) wsSwitchKeys.push(`switch-to-workspace-${i}`);
+
+        wsSwitchModeRow.connect('notify::selected', () => {
+            let mode = 'default';
+            if (wsSwitchModeRow.selected === 1) mode = 'custom';
+            if (wsSwitchModeRow.selected === 2) mode = 'disabled';
+            settings.set_string('workspace-switch-mode', mode);
+
+            if (mode === 'default') {
+                wsSwitchKeys.forEach(k => wmSettings.reset(k));
+            } else if (mode === 'disabled') {
+                wsSwitchKeys.forEach(k => wmSettings.set_strv(k, ['disabled']));
+            }
+        });
+        wsSwitchGroup.add(wsSwitchModeRow);
+
+        const wsSwitchRows = [];
+        for (let i = 1; i <= 4; i++) {
+            wsSwitchRows.push(createRow(wmSettings, `switch-to-workspace-${i}`, `  ↳ Switch to Workspace ${i}`, 'System'));
+        }
+        wsSwitchRows.forEach(r => wsSwitchGroup.add(r));
+        shortcutsPage.add(wsSwitchGroup);
+
+        const updateWsSwitchVisibility = () => {
+            const mode = settings.get_string('workspace-switch-mode');
+            wsSwitchModeRow.subtitle = mode === 'default' ? 'System default keybindings' : '';
+            const showCustom = mode === 'custom';
+            wsSwitchRows.forEach(r => r.visible = showCustom);
+            updateConflicts();
+        };
+        settings.connect('changed::workspace-switch-mode', updateWsSwitchVisibility);
+        updateWsSwitchVisibility();
+
+        // --- Moving to Workspace ---
+        const wsMoveGroup = new Adw.PreferencesGroup({ title: 'Moving to Workspace' });
+        wsMoveGroup.add(createRow(wmSettings, 'move-to-workspace-left', 'Move Window to Workspace Left', 'System'));
+        wsMoveGroup.add(createRow(wmSettings, 'move-to-workspace-right', 'Move Window to Workspace Right', 'System'));
+
+        const wsMoveModeRow = new Adw.ComboRow({ 
+            title: 'Numbered Workspaces', 
+            subtitle: '',
+            model: Gtk.StringList.new(['System Default', 'Edit', 'Disabled']) 
+        });
+        const wsMoveModeStr = settings.get_string('workspace-move-mode');
+        wsMoveModeRow.selected = wsMoveModeStr === 'custom' ? 1 : (wsMoveModeStr === 'disabled' ? 2 : 0);
+
+        const wsMoveKeys = [];
+        for (let i = 1; i <= 4; i++) wsMoveKeys.push(`move-to-workspace-${i}`);
+
+        wsMoveModeRow.connect('notify::selected', () => {
+            let mode = 'default';
+            if (wsMoveModeRow.selected === 1) mode = 'custom';
+            if (wsMoveModeRow.selected === 2) mode = 'disabled';
+            settings.set_string('workspace-move-mode', mode);
+
+            if (mode === 'default') {
+                wsMoveKeys.forEach(k => wmSettings.reset(k));
+            } else if (mode === 'disabled') {
+                wsMoveKeys.forEach(k => wmSettings.set_strv(k, ['disabled']));
+            }
+        });
+        wsMoveGroup.add(wsMoveModeRow);
+
+        const wsMoveRows = [];
+        for (let i = 1; i <= 4; i++) {
+            wsMoveRows.push(createRow(wmSettings, `move-to-workspace-${i}`, `  ↳ Move Window to Workspace ${i}`, 'System'));
+        }
+        wsMoveRows.forEach(r => wsMoveGroup.add(r));
+        shortcutsPage.add(wsMoveGroup);
+
+        const updateWsMoveVisibility = () => {
+            const mode = settings.get_string('workspace-move-mode');
+            wsMoveModeRow.subtitle = mode === 'default' ? 'System default keybindings' : '';
+            const showCustom = mode === 'custom';
+            wsMoveRows.forEach(r => r.visible = showCustom);
+            updateConflicts();
+        };
+        settings.connect('changed::workspace-move-mode', updateWsMoveVisibility);
+        updateWsMoveVisibility();
+
+        // --- Monitor Actions ---
+        const monitorGroup = new Adw.PreferencesGroup({ title: 'Monitor Actions' });
+        const closeMonitorRow = createRow(settings, 'shortcut-close-monitor', 'Close Monitor Windows');
+        monitorGroup.add(closeMonitorRow);
 
         const closeMinRow = new Adw.SwitchRow({ title: '  ↳ Include Minimized', subtitle: '      Also close minimized windows on monitor' });
         settings.bind('close-monitor-include-minimized', closeMinRow, 'active', Gio.SettingsBindFlags.DEFAULT);
@@ -245,17 +437,18 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         };
         settings.connect('changed::shortcut-close-monitor', updateCloseMinRowVisibility);
         updateCloseMinRowVisibility();
-        batchKeysGroup.add(closeMinRow);
+        monitorGroup.add(closeMinRow);
 
         [
-            { id: 'shortcut-close-workspace', label: 'Close Workspace Windows' },
-            { id: 'shortcut-switch-monitor', label: 'Switch Monitors' },
-            { id: 'shortcut-port-monitor-left', label: 'Port Monitor to Left Workspace' },
-            { id: 'shortcut-port-monitor-right', label: 'Port Monitor to Right Workspace' },
-            { id: 'shortcut-unminimize-workspace', label: 'Unminimize Workspace' }
-        ].forEach(s => batchKeysGroup.add(new ShortcutRow(settings, s.id, s.label)));
+            { id: 'shortcut-switch-monitor', label: 'Switch Monitors', origin: '', st: settings },
+            { id: 'shortcut-port-monitor-left', label: 'Port Monitor to Left Workspace', origin: '', st: settings },
+            { id: 'shortcut-port-monitor-right', label: 'Port Monitor to Right Workspace', origin: '', st: settings }
+        ].forEach(s => monitorGroup.add(createRow(s.st, s.id, s.label, s.origin)));
 
-        shortcutsPage.add(batchKeysGroup);
+        shortcutsPage.add(monitorGroup);
+        
+        // Initial conflicts check
+        updateConflicts();
 
         window.add(page);
         window.add(shortcutsPage);

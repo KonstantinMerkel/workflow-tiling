@@ -68,6 +68,18 @@
       <description>Custom swap active window with the one below it.</description>
     </key>
 
+    <key name="workspace-switch-mode" type="s">
+      <default>'default'</default>
+      <summary>Workspace Switch Mode</summary>
+      <description>Mode for numbered workspace switching (default or disabled).</description>
+    </key>
+
+    <key name="workspace-move-mode" type="s">
+      <default>'default'</default>
+      <summary>Workspace Move Mode</summary>
+      <description>Mode for numbered workspace moving (default or disabled).</description>
+    </key>
+
     <key name="focus-window-mode" type="s">
       <default>'default'</default>
       <summary>Focus Window Keybindings Mode</summary>
