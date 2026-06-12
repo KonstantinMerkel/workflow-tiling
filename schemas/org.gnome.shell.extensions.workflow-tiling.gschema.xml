@@ -6,6 +6,12 @@
       <summary>Enable Gaps</summary>
       <description>Toggle gaps on or off globally.</description>
     </key>
+    <key name="monitor-transition-behavior" type="s">
+      <default>'escalate'</default>
+      <summary>Monitor Transition Behavior</summary>
+      <description>Behavior when window crosses monitor boundary ('escalate' or 'swap').</description>
+    </key>
+
     <key name="keybindings-mode" type="s">
       <default>'default'</default>
       <summary>Keybindings Mode</summary>
