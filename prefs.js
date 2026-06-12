@@ -131,6 +131,26 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
 
         page.add(gapsGroup);
 
+        // --- Monitor Transition Group ---
+        const transitionGroup = new Adw.PreferencesGroup({ title: 'Monitor Transition' });
+        const transitionRow = new Adw.SwitchRow({ 
+            title: 'Swap Windows', 
+            subtitle: 'Swap windows across monitors instead of escalating/de-escalating' 
+        });
+        transitionRow.active = settings.get_string('monitor-transition-behavior') === 'swap';
+        transitionRow.connect('notify::active', () => {
+            settings.set_string('monitor-transition-behavior', transitionRow.active ? 'swap' : 'escalate');
+        });
+        settings.connect('changed::monitor-transition-behavior', () => {
+            const active = settings.get_string('monitor-transition-behavior') === 'swap';
+            if (transitionRow.active !== active) {
+                transitionRow.active = active;
+            }
+        });
+        transitionGroup.add(transitionRow);
+        page.add(transitionGroup);
+
+
         // --- Core Keybindings Group ---
         const keysGroup = new Adw.PreferencesGroup({ title: 'Keybindings' });
         const modeRow = new Adw.ComboRow({ 
