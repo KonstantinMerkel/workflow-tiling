@@ -76,7 +76,8 @@ global.display = {
     get_current_monitor: vi.fn(() => 0),
     get_focus_window: vi.fn(() => null),
     list_all_windows: vi.fn(() => []),
-    get_monitor_index_for_rect: vi.fn(() => -1),
+    get_n_monitors: vi.fn(() => 2),
+    get_monitor_geometry: vi.fn((index) => mockMonitorManager.get_logical_monitors()[index]?.rect || { x: 0, y: 0, width: 1920, height: 1080 }),
     connect: vi.fn(),
     disconnect: vi.fn()
 };
@@ -132,5 +133,11 @@ vi.mock('resource:///org/gnome/shell/ui/main.js', () => ({
     wm: {
         addKeybinding: vi.fn(),
         removeKeybinding: vi.fn()
+    },
+    layoutManager: {
+        uiGroup: {
+            add_child: vi.fn(),
+            remove_child: vi.fn()
+        }
     }
 }));
