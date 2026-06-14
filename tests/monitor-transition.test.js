@@ -107,7 +107,11 @@ describe('Monitor Transitions', () => {
             monitorManager: mockMonitorManager,
             settings: mockSettings,
             _windowWrappers: new Map(),
-            _scheduleRetile: vi.fn()
+            _scheduleRetile: vi.fn(),
+            updateWindowWrapperMonitor: function(win, id, idx) {
+                const w = this._windowWrappers.get(win);
+                if (w) { w.monitorId = id; w.monitorIndex = idx; }
+            }
         };
     });
 

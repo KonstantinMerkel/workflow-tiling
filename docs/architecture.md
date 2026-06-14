@@ -14,6 +14,7 @@ Tracks monitor topology.
 Detects hotplug events.
 Identifies stable monitor IDs.
 Manages window evacuation during monitor removal.
+Provides directional monitor lookup via `getMonitorInDirection()` for cross-monitor transitions.
 
 ## SignalListener (`lib/signals.js`)
 Binds GNOME Shell signals.
@@ -40,9 +41,11 @@ Binds single-shot `size-changed` signals to detect external resizing.
 
 ## WorkspaceManager & WorkspaceLayout (`lib/workspace.js`)
 `WorkspaceManager` tracks multiple layouts across GNOME workspaces.
+`WorkspaceManager` provides batch monitor operations (close, switch, port to workspace).
 `WorkspaceLayout` tracks windows per workspace and monitor.
 Calculates window slots based on insertion order.
 Provides window displacement and swapping logic.
+Handles cross-monitor window transitions via configurable swap or escalate behavior.
 
 ## StateTracker (`lib/state.js`)
 Maintains stable ordered list of windows.
@@ -53,10 +56,12 @@ Swaps window positions.
 Tracks window drag-and-drop operations.
 Renders visual swap indicators.
 Triggers geometric swapping based on pointer intersections.
+Handles cross-monitor drag transitions with visual previews and deferred retiles.
 
 ## SettingsManager (`lib/settings.js`)
 Loads configuration preferences.
 Parses layout JSON into valid escalator transitions.
+Exposes monitor transition behavior configuration.
 
 ## Logger (`lib/logger.js`)
 Provides debug and trace logging.
@@ -65,6 +70,7 @@ Configurable output verbosity.
 ## Escalator (`lib/layout.js`)
 Generates tile geometries.
 Provides geometric estates based on current window count.
+Provides edge-adjacent slot lookup via `getEdgingSlot()` for directional transitions.
 
 ## Execution Flow
 Signal triggers event.
@@ -73,3 +79,9 @@ Controller updates WorkspaceLayout state.
 Controller schedules deferred retile.
 Retile queries Escalator for layouts.
 Retile invokes WindowWrapper to apply geometries.
+
+## Cross-Monitor Flow
+Keyboard/drag triggers direction detection.
+Controller/DragManager delegates to WorkspaceLayout.
+WorkspaceLayout escalates or swaps window between monitor trackers.
+Controller schedules retile on both monitors.

@@ -228,6 +228,10 @@ describe('WorkspaceManager', () => {
             retileAll: vi.fn(),
             hydrate: vi.fn(),
             _windowWrappers: new Map(),
+            updateWindowWrapperMonitor: function(win, id, idx) {
+                const w = this._windowWrappers.get(win);
+                if (w) { w.monitorId = id; w.monitorIndex = idx; }
+            },
             escalator: LayoutParser.parse('{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}')
         };
         manager = new WorkspaceManager(controller);
@@ -413,7 +417,11 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             escalator: escalator,
             monitorManager: mockMonitorManager,
             _windowWrappers: new Map(),
-            _scheduleRetile: vi.fn()
+            _scheduleRetile: vi.fn(),
+            updateWindowWrapperMonitor: function(win, id, idx) {
+                const w = this._windowWrappers.get(win);
+                if (w) { w.monitorId = id; w.monitorIndex = idx; }
+            }
         };
         const ws = { index: () => 0 };
         const layout = new WorkspaceLayout(ws, controller);
