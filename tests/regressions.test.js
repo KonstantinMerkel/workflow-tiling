@@ -201,7 +201,6 @@ describe('Regressions', () => {
             controller.dragManager._handlePositionChanged(
                 controller._windowWrappers.get(winB),
                 layout,
-                sourceTracker,
                 1,
                 dragInfo.indicator
             );
