@@ -5,10 +5,11 @@ import { LayoutParser } from '../lib/layout.js';
 describe('WorkspaceLayout', () => {
     const defaultJson = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
     const escalator = LayoutParser.parse(defaultJson);
+    const controller = { escalator };
     const monitorRect = { x: 0, y: 0, width: 1000, height: 1000 };
 
     it('should track windows in sequence with gaps', () => {
-        const layout = new WorkspaceLayout({}, escalator);
+        const layout = new WorkspaceLayout({}, controller);
         const win1 = { id: 1 };
         const win2 = { id: 2 };
 
@@ -22,7 +23,7 @@ describe('WorkspaceLayout', () => {
     });
 
     it('should handle multiple monitors independently', () => {
-        const layout = new WorkspaceLayout({}, escalator);
+        const layout = new WorkspaceLayout({}, controller);
         const rectM0 = { x: 0, y: 0, width: 1920, height: 1080 };
         const rectM1 = { x: 1920, y: 0, width: 1920, height: 1080 }; 
 
@@ -39,7 +40,7 @@ describe('WorkspaceLayout', () => {
     });
 
     it('should handle different resolutions on different monitors', () => {
-        const layout = new WorkspaceLayout({}, escalator);
+        const layout = new WorkspaceLayout({}, controller);
         const rect4K = { x: 0, y: 0, width: 3840, height: 2160 };
         const rectHD = { x: 3840, y: 0, width: 1920, height: 1080 };
 
@@ -56,7 +57,7 @@ describe('WorkspaceLayout', () => {
     });
 
     it('should provide retile operations when a window is removed', () => {
-        const layout = new WorkspaceLayout({}, escalator);
+        const layout = new WorkspaceLayout({}, controller);
         const w1 = { id: 1 };
         const w2 = { id: 2 };
         const w3 = { id: 3 };
@@ -73,7 +74,7 @@ describe('WorkspaceLayout', () => {
     });
 
     it('should maintain independent window counts across monitors', () => {
-        const layout = new WorkspaceLayout({}, escalator);
+        const layout = new WorkspaceLayout({}, controller);
         layout.trackWindow({ id: 1 }, 0);
         layout.trackWindow({ id: 2 }, 1);
         layout.trackWindow({ id: 3 }, 1);
@@ -84,7 +85,7 @@ describe('WorkspaceLayout', () => {
 
     describe('moveWindowDirection', () => {
         it('should correctly swap windows left/right with 2 windows', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             const w1 = { id: 1 };
             const w2 = { id: 2 };
             layout.trackWindow(w1, 0);
@@ -103,7 +104,7 @@ describe('WorkspaceLayout', () => {
         });
 
         it('should correctly prioritize older windows when moving left/right in 3-window layout', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             const w1 = { id: 1 }; // left
             const w2 = { id: 2 }; // top right
             const w3 = { id: 3 }; // bottom right
@@ -122,7 +123,7 @@ describe('WorkspaceLayout', () => {
         });
 
         it('should swap up/down in 3-window layout', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             const w1 = { id: 1 }; // left
             const w2 = { id: 2 }; // top right
             const w3 = { id: 3 }; // bottom right
@@ -140,7 +141,7 @@ describe('WorkspaceLayout', () => {
         });
 
         it('should not move if no window in that direction', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             const w1 = { id: 1 }; // left
             const w2 = { id: 2 }; // right
 
@@ -160,7 +161,7 @@ describe('WorkspaceLayout', () => {
         const mockRect = { x: 0, y: 0, width: 1000, height: 1000 };
 
         it('should swap windows if center is dropped over another window', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             const w1 = { id: 1, get_frame_rect: () => ({ x: 700, y: 100, width: 100, height: 100 }) }; // dropped center at (750, 150), which is in the right half
             const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
 
@@ -177,7 +178,7 @@ describe('WorkspaceLayout', () => {
         });
 
         it('should not swap if dropped outside of any other window', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             // Dropped way off screen (e.g. invalid drag or over a panel)
             const w1 = { id: 1, get_frame_rect: () => ({ x: 2000, y: 2000, width: 100, height: 100 }) };
             const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
@@ -195,7 +196,7 @@ describe('WorkspaceLayout', () => {
         });
 
         it('should not swap with itself if dropped in its own original area', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             // Dropped in the left half (its own area in 2-window layout)
             const w1 = { id: 1, get_frame_rect: () => ({ x: 100, y: 100, width: 100, height: 100 }) };
             const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
@@ -328,10 +329,11 @@ describe('WorkspaceManager', () => {
 describe('WorkspaceLayout Cross-Monitor Fallback', () => {
     const defaultJson = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
     const escalator = LayoutParser.parse(defaultJson);
+    const controller = { escalator };
 
     describe('_findClosestBoundaryWindow', () => {
         it('should choose the window with highest overlap on adjacent edge', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             const targetTracker = {
                 size: 2,
                 windows: [
@@ -346,7 +348,7 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
         });
 
         it('should resolve ties using top-most/right-most tie breakers', () => {
-            const layout = new WorkspaceLayout({}, escalator);
+            const layout = new WorkspaceLayout({}, controller);
             const targetTrackerY = {
                 size: 2,
                 windows: [
