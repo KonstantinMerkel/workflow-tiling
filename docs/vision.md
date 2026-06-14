@@ -21,7 +21,7 @@ Layout transitions are predictable, minimal, and fully customizable. The system 
 -   **Error Shielding**: Every Mutter API interaction is wrapped in defensive checks and error handling to prevent Shell crashes.
 
 ### Scaling & Isolation
--   **Multi-Monitor Support**: Each monitor maintains an independent tiling state and respects its own work area/resolution.
+-   **Multi-Monitor Support**: Each monitor maintains an independent tiling state and respects its own work area/resolution. Monitors support cross-monitor window transitions via keyboard and drag, with configurable swap/escalate behavior.
 -   **Workspace Isolation**: Tiling is scoped per GNOME workspace.
 
 ## Future Roadmap
