@@ -118,4 +118,32 @@ describe('WindowWrapper', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 }); // should not throw
     });
+
+    describe('_pendingLaters tracking', () => {
+        it('should track and remove compositor laters on destroy', () => {
+            const wrapper = new WindowWrapper(mockWindow, mockController);
+            const mockLaters = { add: vi.fn(() => 42), remove: vi.fn() };
+            global.compositor.get_laters = vi.fn(() => mockLaters);
+
+            wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
+            expect(wrapper._pendingLaters.length).toBeGreaterThan(0);
+            expect(wrapper._pendingLaters.includes(42)).toBe(true);
+
+            wrapper.destroy();
+            expect(mockLaters.remove).toHaveBeenCalledWith(42);
+            expect(wrapper._pendingLaters.length).toBe(0);
+        });
+
+        it('should catch errors when removing already-fired laters in destroy', () => {
+            const wrapper = new WindowWrapper(mockWindow, mockController);
+            const mockLaters = {
+                add: vi.fn(() => 42),
+                remove: vi.fn(() => { throw new Error('Already removed'); })
+            };
+            global.compositor.get_laters = vi.fn(() => mockLaters);
+
+            wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
+            expect(() => wrapper.destroy()).not.toThrow();
+        });
+    });
 });
