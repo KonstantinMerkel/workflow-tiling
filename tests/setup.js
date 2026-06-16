@@ -1,22 +1,28 @@
 import { vi } from 'vitest';
 
 // Mock GNOME's 'gi://' imports which don't exist in Node environment
-vi.mock('gi://GLib', () => ({
-    default: {
-        idle_add: vi.fn((priority, callback) => {
-            callback(); // Execute immediately in tests
-            return 1;
-        }),
-        timeout_add: vi.fn((priority, interval, callback) => {
-            callback(); // Execute immediately in tests
-            return 1;
-        }),
-        source_remove: vi.fn(),
-        SOURCE_REMOVE: false,
-        PRIORITY_DEFAULT: 0,
-        PRIORITY_DEFAULT_IDLE: 0
-    }
-}));
+vi.mock('gi://GLib', () => {
+    let _idleCounter = 0;
+    let _timeoutCounter = 0;
+    return {
+        default: {
+            idle_add: vi.fn((priority, callback) => {
+                const id = ++_idleCounter;
+                callback();
+                return id;
+            }),
+            timeout_add: vi.fn((priority, interval, callback) => {
+                const id = ++_timeoutCounter;
+                callback();
+                return id;
+            }),
+            source_remove: vi.fn(),
+            SOURCE_REMOVE: false,
+            PRIORITY_DEFAULT: 0,
+            PRIORITY_DEFAULT_IDLE: 0
+        }
+    };
+});
 
 vi.mock('gi://St', () => ({
     default: {
@@ -78,11 +84,13 @@ global.workspace_manager = {
         list_windows: vi.fn(() => [])
     }))
 };
+let _laterCounter = 0;
 global.compositor = {
     get_laters: vi.fn(() => ({
         add: vi.fn((type, callback) => {
+            const id = ++_laterCounter;
             callback();
-            return 1;
+            return id;
         }),
         remove: vi.fn()
     }))
