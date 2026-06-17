@@ -68,7 +68,9 @@ describe('Adversarial Tests', () => {
             // Setup wrapper to make it look like a monitor change
             const wrapper = {
                 workspace: ws,
+                get effectiveWorkspace() { return ws; },
                 monitorIndex: 0,
+                get effectiveMonitorIndex() { return win.get_monitor(); },
                 monitorId: 'monitor-0',
                 applyGeometry: vi.fn(),
                 bindSignals: vi.fn(),
