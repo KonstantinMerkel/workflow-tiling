@@ -341,14 +341,14 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             const targetTracker = {
                 size: 2,
                 windows: [
-                    { get_frame_rect: () => ({ x: 1000, y: 0, width: 500, height: 400 }) },
-                    { get_frame_rect: () => ({ x: 1000, y: 300, width: 500, height: 700 }) }
+                    { get_frame_rect: () => ({ x: 1000, y: 0, width: 500, height: 150 }) },
+                    { get_frame_rect: () => ({ x: 1000, y: 150, width: 500, height: 850 }) }
                 ]
             };
             const sourceRect = { x: 0, y: 100, width: 1000, height: 400 };
             
             const best = layout._findClosestBoundaryWindow(targetTracker, 'right', sourceRect);
-            expect(best).toBe(targetTracker.windows[0]);
+            expect(best).toBe(targetTracker.windows[1]);
         });
 
         it('should resolve ties using top-most/right-most tie breakers', () => {
