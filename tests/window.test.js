@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WindowWrapper } from '../lib/window.js';
 
 describe('WindowWrapper', () => {
@@ -121,6 +121,14 @@ describe('WindowWrapper', () => {
     });
 
     describe('_pendingLaters tracking', () => {
+        let originalGetLaters;
+        beforeEach(() => {
+            originalGetLaters = global.compositor.get_laters;
+        });
+        afterEach(() => {
+            global.compositor.get_laters = originalGetLaters;
+        });
+
         it('should track and remove compositor laters on destroy', () => {
             const wrapper = new WindowWrapper(mockWindow, mockController);
             const mockLaters = { add: vi.fn(() => 42), remove: vi.fn() };
