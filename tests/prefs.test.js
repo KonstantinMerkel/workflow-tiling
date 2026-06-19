@@ -344,13 +344,14 @@ describe('WorkflowTilingPreferences', () => {
         expect(titles).toContain('Layouts');
     });
 
-    it('should place only Gaps group in General page', () => {
+    it('should place Gaps and Monitor Transition groups in General page', () => {
         prefs.fillPreferencesWindow(mockWindow);
         const generalPage = addedPages.find(p => p.title === 'General');
 
         expect(generalPage).toBeDefined();
-        expect(generalPage.groups).toHaveLength(1);
+        expect(generalPage.groups).toHaveLength(2);
         expect(generalPage.groups[0].title).toBe('Gaps');
+        expect(generalPage.groups[1].title).toBe('Monitor Transition');
     });
 
     it('should place correct shortcut groups in Keyboard Shortcuts page', () => {
