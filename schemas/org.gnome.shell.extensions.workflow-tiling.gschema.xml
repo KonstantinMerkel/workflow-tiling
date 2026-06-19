@@ -179,18 +179,6 @@
       <summary>Custom Layouts JSON</summary>
       <description>JSON string defining custom window layouts.</description>
     </key>
-    <key name="shortcut-toggle-maximize" type="as">
-      <default><![CDATA[['<Alt>plus']]]></default>
-      <summary>Toggle Maximize Override</summary>
-      <description>Persistent maximize for active window.</description>
-    </key>
-
-    <key name="shortcut-toggle-fullscreen" type="as">
-      <default><![CDATA[['F11']]]></default>
-      <summary>Toggle Fullscreen Override</summary>
-      <description>Persistent fullscreen for active window.</description>
-    </key>
-
     <key name="shadowed-keybindings" type="s">
       <default><![CDATA['{}']]></default>
       <summary>Shadowed Native Keybindings</summary>
