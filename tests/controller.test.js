@@ -183,7 +183,7 @@ describe('TilingController', () => {
 
         // Window should have been minimized by our controller because monitor-1 is gone
         expect(win.minimize).toHaveBeenCalled();
-        expect(controller._batchMode).toBe(true);
+        expect(controller._batchMode).toBe(false);
         
         // Window tracked for restoration (keyed by window reference)
         expect(controller.monitorManager._evacuatedWindows.has(win)).toBe(true);

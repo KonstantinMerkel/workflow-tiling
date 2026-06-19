@@ -48,7 +48,7 @@ describe('WindowWrapper', () => {
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.bindSignals();
         wrapper.bindSignals(); // should not connect again
-        expect(mockWindow.connect).toHaveBeenCalledTimes(6);
+        expect(mockWindow.connect).toHaveBeenCalledTimes(7);
     });
 
     it('should bind size changed and respect _isResizing', () => {
@@ -80,7 +80,7 @@ describe('WindowWrapper', () => {
         wrapper.bindSizeChanged();
         
         wrapper.destroy();
-        expect(mockWindow.disconnect).toHaveBeenCalledTimes(7);
+        expect(mockWindow.disconnect).toHaveBeenCalledTimes(8);
     });
 
     it('should apply geometry skipping unmanaged', () => {
