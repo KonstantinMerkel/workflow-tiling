@@ -81,7 +81,7 @@ describe('WindowWrapper', () => {
         wrapper.bindSizeChanged();
         
         wrapper.destroy();
-        expect(mockWindow.disconnect).toHaveBeenCalledTimes(8);
+        expect(mockWindow.disconnect).toHaveBeenCalledTimes(9);
     });
 
     it('should apply geometry skipping unmanaged', () => {
