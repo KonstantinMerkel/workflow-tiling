@@ -6,6 +6,11 @@
       <summary>Enable Gaps</summary>
       <description>Toggle gaps on or off globally.</description>
     </key>
+    <key name="show-advanced-json" type="b">
+      <default>false</default>
+      <summary>Show Advanced JSON</summary>
+      <description>Persist visibility of the advanced JSON editor tab.</description>
+    </key>
     <key name="monitor-transition-behavior" type="s">
       <default>'escalate'</default>
       <summary>Monitor Transition Behavior</summary>
