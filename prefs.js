@@ -467,8 +467,11 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
             subtitle: 'Only if you know what you are doing. This will not save you from bad decisions'
         });
         
+        settings.bind('show-advanced-json', jsonToggle, 'active', Gio.SettingsBindFlags.DEFAULT);
+
         let jsonPageAdded = false;
-        jsonToggle.connect('notify::active', () => {
+        
+        const updateLayoutVisibility = () => {
             if (jsonToggle.active && !jsonPageAdded) {
                 window.add(layoutPage);
                 jsonPageAdded = true;
@@ -476,7 +479,13 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
                 window.remove(layoutPage);
                 jsonPageAdded = false;
             }
-        });
+        };
+
+        jsonToggle.connect('notify::active', updateLayoutVisibility);
+        
+        // Initial state application
+        updateLayoutVisibility();
+
         advancedGroup.add(jsonToggle);
         previewPage.add(advancedGroup);
     }

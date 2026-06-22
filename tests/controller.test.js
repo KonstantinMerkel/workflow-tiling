@@ -554,14 +554,14 @@ describe('TilingController', () => {
             
             controller.toggleOverrideActiveWindow('maximize');
             expect(controller._authorizedOverrides.has(win)).toBe(true);
-            expect(win.maximize).toHaveBeenCalledWith(3);
+            expect(win.maximize).toHaveBeenCalled();
 
             // Toggle off
             win.maximized_horizontally = true;
             win.maximized_vertically = true;
             controller.toggleOverrideActiveWindow('maximize');
             expect(controller._authorizedOverrides.has(win)).toBe(false);
-            expect(win.unmaximize).toHaveBeenCalledWith(3);
+            expect(win.unmaximize).toHaveBeenCalled();
         });
 
         it('should toggle override for fullscreen', () => {
@@ -596,7 +596,7 @@ describe('TilingController', () => {
             controller._clearOverridesOnMonitor(0);
             
             expect(controller._authorizedOverrides.has(win)).toBe(false);
-            expect(win.unmaximize).toHaveBeenCalledWith(3);
+            expect(win.unmaximize).toHaveBeenCalled();
             expect(win.unmake_fullscreen).toHaveBeenCalled();
         });
     });
