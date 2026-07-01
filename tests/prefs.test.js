@@ -349,9 +349,10 @@ describe('WorkflowTilingPreferences', () => {
         const generalPage = addedPages.find(p => p.title === 'General');
 
         expect(generalPage).toBeDefined();
-        expect(generalPage.groups).toHaveLength(2);
+        expect(generalPage.groups).toHaveLength(3);
         expect(generalPage.groups[0].title).toBe('Gaps');
         expect(generalPage.groups[1].title).toBe('Monitor Transition');
+        expect(generalPage.groups[2].title).toBe('Debug');
     });
 
     it('should place correct shortcut groups in Keyboard Shortcuts page', () => {
