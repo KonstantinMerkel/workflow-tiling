@@ -1,4 +1,4 @@
-UUID = workflow-tiling@konstantin.dev
+UUID = $(shell grep -oP '"uuid":\s*"\K[^"]+' metadata.json)
 EXT_DIR = ~/.local/share/gnome-shell/extensions/$(UUID)
 FILES = extension.js metadata.json lib/ schemas/ prefs.js
 
