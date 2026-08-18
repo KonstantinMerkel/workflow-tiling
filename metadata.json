@@ -4,6 +4,11 @@
   "uuid": "workflow-tiling@KonstantinMerkel.github.io",
   "url": "https://github.com/KonstantinMerkel/workflow-tiling/",
   "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
     "50"
   ],
   "version": 1,

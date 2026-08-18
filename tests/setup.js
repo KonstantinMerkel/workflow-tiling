@@ -146,3 +146,7 @@ vi.mock('resource:///org/gnome/shell/ui/main.js', () => ({
         }
     }
 }));
+
+vi.mock('resource:///org/gnome/shell/misc/config.js', () => ({
+    PACKAGE_VERSION: '46.0'
+}));

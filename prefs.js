@@ -13,7 +13,8 @@ import { LayoutEditorPage } from './lib/editor/editor.js';
 const ShortcutRowMixin = {
     _recordShortcut() {
         const window = this.get_root();
-        const dialog = new Adw.AlertDialog({
+        const DialogClass = Adw.AlertDialog || Adw.MessageDialog;
+        const dialog = new DialogClass({
             heading: 'Set Shortcut',
             body: 'Press the new shortcut combination...\nPress Backspace to clear.',
         });
@@ -525,7 +526,8 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
     }
 
     _showDialog(parentWindow, heading, body) {
-        const dialog = new Adw.AlertDialog({ heading, body });
+        const DialogClass = Adw.AlertDialog || Adw.MessageDialog;
+        const dialog = new DialogClass({ heading, body });
         dialog.add_response('ok', 'OK');
         dialog.present(parentWindow);
     }

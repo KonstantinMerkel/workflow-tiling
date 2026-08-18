@@ -10,19 +10,17 @@ import { KeybindingManager } from './lib/keybindings.js';
  * Main extension class. Manages controller and signals.
  */
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import { LayoutParser } from './lib/layout.js';
 
 export default class WorkflowTilingExtension extends Extension {
     enable() {
-        Logger.info(`Enabling ${this.metadata.name}`);
+        Logger.info(`Enabling ${this.metadata.name} on GNOME Shell ${Config.PACKAGE_VERSION}`);
         this._settings = new SettingsManager(this);
         this._controller = new TilingController(this._settings);
         this._signals = new SignalListener(this._controller);
         this._keybindings = new KeybindingManager(this._controller);
         
-        this._isActive = false;
-        this._wasSuspended = false;
-
         this._isActive = false;
         this._wasSuspended = false;
 
