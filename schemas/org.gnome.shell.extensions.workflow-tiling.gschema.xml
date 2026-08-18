@@ -11,6 +11,11 @@
       <summary>Show Advanced JSON</summary>
       <description>Persist visibility of the advanced JSON editor tab.</description>
     </key>
+    <key name="debug-logging" type="b">
+      <default>false</default>
+      <summary>Debug Logging</summary>
+      <description>Enable verbose debug logging in system logs.</description>
+    </key>
     <key name="monitor-transition-behavior" type="s">
       <default>'escalate'</default>
       <summary>Monitor Transition Behavior</summary>
@@ -71,18 +76,6 @@
       <default><![CDATA[['<Super>Down']]]></default>
       <summary>Custom Move Window Down</summary>
       <description>Custom swap active window with the one below it.</description>
-    </key>
-
-    <key name="workspace-switch-mode" type="s">
-      <default>'default'</default>
-      <summary>Workspace Switch Mode</summary>
-      <description>Mode for numbered workspace switching (default or disabled).</description>
-    </key>
-
-    <key name="workspace-move-mode" type="s">
-      <default>'default'</default>
-      <summary>Workspace Move Mode</summary>
-      <description>Mode for numbered workspace moving (default or disabled).</description>
     </key>
 
     <key name="focus-window-mode" type="s">

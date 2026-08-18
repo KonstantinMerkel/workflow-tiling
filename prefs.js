@@ -331,99 +331,13 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         wsOpsGroup.add(createRow(settings, 'shortcut-unminimize-workspace', 'Unminimize Workspace'));
         shortcutsPage.add(wsOpsGroup);
 
-        // --- Workspace Switching ---
-        const wsSwitchGroup = new Adw.PreferencesGroup({ title: 'Workspace Switching' });
-        wsSwitchGroup.add(createRow(wmSettings, 'switch-to-workspace-left', 'Switch to Workspace Left', 'System'));
-        wsSwitchGroup.add(createRow(wmSettings, 'switch-to-workspace-right', 'Switch to Workspace Right', 'System'));
-        
-        const wsSwitchModeRow = new Adw.ComboRow({ 
-            title: 'Numbered Workspaces', 
-            subtitle: '',
-            model: Gtk.StringList.new(['System Default', 'Edit', 'Disabled']) 
-        });
-        const wsSwitchModeStr = settings.get_string('workspace-switch-mode');
-        wsSwitchModeRow.selected = wsSwitchModeStr === 'custom' ? 1 : (wsSwitchModeStr === 'disabled' ? 2 : 0);
-        
-        const wsSwitchKeys = [];
-        for (let i = 1; i <= 4; i++) wsSwitchKeys.push(`switch-to-workspace-${i}`);
-
-        wsSwitchModeRow.connect('notify::selected', () => {
-            let mode = 'default';
-            if (wsSwitchModeRow.selected === 1) mode = 'custom';
-            if (wsSwitchModeRow.selected === 2) mode = 'disabled';
-            settings.set_string('workspace-switch-mode', mode);
-
-            if (mode === 'default') {
-                wsSwitchKeys.forEach(k => wmSettings.reset(k));
-            } else if (mode === 'disabled') {
-                wsSwitchKeys.forEach(k => wmSettings.set_strv(k, ['disabled']));
-            }
-        });
-        wsSwitchGroup.add(wsSwitchModeRow);
-
-        const wsSwitchRows = [];
-        for (let i = 1; i <= 4; i++) {
-            wsSwitchRows.push(createRow(wmSettings, `switch-to-workspace-${i}`, `  ↳ Switch to Workspace ${i}`, 'System'));
-        }
-        wsSwitchRows.forEach(r => wsSwitchGroup.add(r));
-        shortcutsPage.add(wsSwitchGroup);
-
-        const updateWsSwitchVisibility = () => {
-            const mode = settings.get_string('workspace-switch-mode');
-            wsSwitchModeRow.subtitle = mode === 'default' ? 'System default keybindings' : '';
-            const showCustom = mode === 'custom';
-            wsSwitchRows.forEach(r => r.visible = showCustom);
-            updateConflicts();
-        };
-        settings.connect('changed::workspace-switch-mode', updateWsSwitchVisibility);
-        updateWsSwitchVisibility();
-
         // --- Moving to Workspace ---
         const wsMoveGroup = new Adw.PreferencesGroup({ title: 'Moving to Workspace' });
         wsMoveGroup.add(createRow(wmSettings, 'move-to-workspace-left', 'Move Window to Workspace Left', 'System'));
         wsMoveGroup.add(createRow(wmSettings, 'move-to-workspace-right', 'Move Window to Workspace Right', 'System'));
-
-        const wsMoveModeRow = new Adw.ComboRow({ 
-            title: 'Numbered Workspaces', 
-            subtitle: '',
-            model: Gtk.StringList.new(['System Default', 'Edit', 'Disabled']) 
-        });
-        const wsMoveModeStr = settings.get_string('workspace-move-mode');
-        wsMoveModeRow.selected = wsMoveModeStr === 'custom' ? 1 : (wsMoveModeStr === 'disabled' ? 2 : 0);
-
-        const wsMoveKeys = [];
-        for (let i = 1; i <= 4; i++) wsMoveKeys.push(`move-to-workspace-${i}`);
-
-        wsMoveModeRow.connect('notify::selected', () => {
-            let mode = 'default';
-            if (wsMoveModeRow.selected === 1) mode = 'custom';
-            if (wsMoveModeRow.selected === 2) mode = 'disabled';
-            settings.set_string('workspace-move-mode', mode);
-
-            if (mode === 'default') {
-                wsMoveKeys.forEach(k => wmSettings.reset(k));
-            } else if (mode === 'disabled') {
-                wsMoveKeys.forEach(k => wmSettings.set_strv(k, ['disabled']));
-            }
-        });
-        wsMoveGroup.add(wsMoveModeRow);
-
-        const wsMoveRows = [];
-        for (let i = 1; i <= 4; i++) {
-            wsMoveRows.push(createRow(wmSettings, `move-to-workspace-${i}`, `  ↳ Move Window to Workspace ${i}`, 'System'));
-        }
-        wsMoveRows.forEach(r => wsMoveGroup.add(r));
+        wsMoveGroup.add(createRow(settings, 'shortcut-port-monitor-left', 'Port Monitor to Left Workspace'));
+        wsMoveGroup.add(createRow(settings, 'shortcut-port-monitor-right', 'Port Monitor to Right Workspace'));
         shortcutsPage.add(wsMoveGroup);
-
-        const updateWsMoveVisibility = () => {
-            const mode = settings.get_string('workspace-move-mode');
-            wsMoveModeRow.subtitle = mode === 'default' ? 'System default keybindings' : '';
-            const showCustom = mode === 'custom';
-            wsMoveRows.forEach(r => r.visible = showCustom);
-            updateConflicts();
-        };
-        settings.connect('changed::workspace-move-mode', updateWsMoveVisibility);
-        updateWsMoveVisibility();
 
         // --- Monitor Actions ---
         const monitorGroup = new Adw.PreferencesGroup({ title: 'Monitor Actions' });
@@ -440,11 +354,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         updateCloseMinRowVisibility();
         monitorGroup.add(closeMinRow);
 
-        [
-            { id: 'shortcut-switch-monitor', label: 'Switch Monitors', origin: '', st: settings },
-            { id: 'shortcut-port-monitor-left', label: 'Port Monitor to Left Workspace', origin: '', st: settings },
-            { id: 'shortcut-port-monitor-right', label: 'Port Monitor to Right Workspace', origin: '', st: settings }
-        ].forEach(s => monitorGroup.add(createRow(s.st, s.id, s.label, s.origin)));
+        monitorGroup.add(createRow(settings, 'shortcut-switch-monitor', 'Switch Monitors'));
 
         shortcutsPage.add(monitorGroup);
         
@@ -453,6 +363,13 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
 
         // --- Debug Group ---
         const debugGroup = new Adw.PreferencesGroup({ title: 'Debug' });
+        const debugLoggingRow = new Adw.SwitchRow({
+            title: 'Debug Logging',
+            subtitle: 'Enable verbose debug messages in system log'
+        });
+        settings.bind('debug-logging', debugLoggingRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        debugGroup.add(debugLoggingRow);
+
         const saveBugLogsRow = new Adw.ActionRow({
             title: 'Save Bug Logs',
             subtitle: 'Export all session logs to ~/Downloads for bug reports',

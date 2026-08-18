@@ -22,7 +22,11 @@ describe('Logger', () => {
         console.warn = originalConsole.warn;
         console.error = originalConsole.error;
         console.debug = originalConsole.debug;
-        Logger.DEBUG = true;
+        Logger.DEBUG = false;
+    });
+
+    it('should default DEBUG to false', () => {
+        expect(Logger.DEBUG).toBe(false);
     });
 
     it('should log info', () => {
@@ -70,3 +74,43 @@ describe('Logger', () => {
         expect(console.log).not.toHaveBeenCalledWith('WorkflowTiling: [DEBUG] test debug');
     });
 });
+
+describe('SettingsManager debug logging sync', () => {
+    it('should update Logger.DEBUG based on settings', async () => {
+        const { SettingsManager } = await import('../lib/settings.js');
+        const listeners = {};
+        const mockSettings = {
+            'enable-gaps': false,
+            'debug-logging': false,
+            'custom-layouts': '',
+            'monitor-transition-behavior': 'escalate'
+        };
+
+        const mockExtension = {
+            getSettings: () => ({
+                get_boolean: (key) => mockSettings[key] ?? false,
+                get_int: () => 0,
+                get_string: (key) => mockSettings[key] ?? '',
+                connect: (signal, cb) => {
+                    listeners[signal] = cb;
+                    return signal;
+                },
+                disconnect: vi.fn()
+            })
+        };
+
+        const sm = new SettingsManager(mockExtension);
+        expect(Logger.DEBUG).toBe(false);
+
+        mockSettings['debug-logging'] = true;
+        listeners['changed::debug-logging']();
+        expect(Logger.DEBUG).toBe(true);
+
+        mockSettings['debug-logging'] = false;
+        listeners['changed::debug-logging']();
+        expect(Logger.DEBUG).toBe(false);
+
+        sm.destroy();
+    });
+});
+

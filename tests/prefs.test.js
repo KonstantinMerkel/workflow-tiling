@@ -15,6 +15,7 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
         'shortcut-port-monitor-left': [],
         'shortcut-port-monitor-right': [],
         'shortcut-unminimize-workspace': [],
+        'debug-logging': false,
         'custom-layouts': '{}'
     };
 
@@ -344,7 +345,7 @@ describe('WorkflowTilingPreferences', () => {
         expect(titles).toContain('Layouts');
     });
 
-    it('should place Gaps and Monitor Transition groups in General page', () => {
+    it('should place Gaps, Monitor Transition and Debug groups in General page', () => {
         prefs.fillPreferencesWindow(mockWindow);
         const generalPage = addedPages.find(p => p.title === 'General');
 
@@ -353,6 +354,11 @@ describe('WorkflowTilingPreferences', () => {
         expect(generalPage.groups[0].title).toBe('Gaps');
         expect(generalPage.groups[1].title).toBe('Monitor Transition');
         expect(generalPage.groups[2].title).toBe('Debug');
+
+        const debugGroup = generalPage.groups[2];
+        const debugSwitch = debugGroup.rows.find(r => r.title === 'Debug Logging');
+        expect(debugSwitch).toBeDefined();
+        expect(debugSwitch.active).toBe(false);
     });
 
     it('should place correct shortcut groups in Keyboard Shortcuts page', () => {
@@ -360,13 +366,24 @@ describe('WorkflowTilingPreferences', () => {
         const shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
 
         expect(shortcutsPage).toBeDefined();
-        expect(shortcutsPage.groups).toHaveLength(7);
+        expect(shortcutsPage.groups).toHaveLength(6);
         expect(shortcutsPage.groups[1].title).toBe('Window Focus & Position');
         expect(shortcutsPage.groups[2].title).toBe('Window State');
         expect(shortcutsPage.groups[3].title).toBe('Workspace Operations');
-        expect(shortcutsPage.groups[4].title).toBe('Workspace Switching');
-        expect(shortcutsPage.groups[5].title).toBe('Moving to Workspace');
-        expect(shortcutsPage.groups[6].title).toBe('Monitor Actions');
+        expect(shortcutsPage.groups[4].title).toBe('Moving to Workspace');
+        expect(shortcutsPage.groups[5].title).toBe('Monitor Actions');
+
+        const moveGroup = shortcutsPage.groups[4];
+        const moveKeys = moveGroup.rows.map(r => r.keyName);
+        expect(moveKeys).toContain('move-to-workspace-left');
+        expect(moveKeys).toContain('move-to-workspace-right');
+        expect(moveKeys).toContain('shortcut-port-monitor-left');
+        expect(moveKeys).toContain('shortcut-port-monitor-right');
+
+        const monitorGroup = shortcutsPage.groups[5];
+        const monitorKeys = monitorGroup.rows.map(r => r.keyName).filter(Boolean);
+        expect(monitorKeys).toContain('shortcut-close-monitor');
+        expect(monitorKeys).toContain('shortcut-switch-monitor');
     });
 
     it('should toggle JSON Layout Editor page dynamically when active notify fires', () => {
