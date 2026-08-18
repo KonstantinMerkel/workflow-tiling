@@ -48,6 +48,11 @@ vi.mock('gi://Gio', () => ({
         Settings: class {
             constructor() {}
             get_string() { return 'yellow'; }
+        },
+        SettingsSchemaSource: {
+            get_default: vi.fn(() => ({
+                lookup: vi.fn((id, recursive) => null)
+            }))
         }
     }
 }));

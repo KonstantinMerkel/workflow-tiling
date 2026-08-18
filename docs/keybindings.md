@@ -16,7 +16,7 @@ Used for all `Custom` modes and utility shortcuts.
 To bypass the limitation of `Main.wm.addKeybinding`, `ShadowManager` temporarily deletes conflicting shortcuts from GNOME settings while the extension is active.
 
 ### Execution Flow:
-1. **Normalize:** Target custom keystrokes are parsed via `Gtk.accelerator_parse` to normalize modifier ordering (`<Alt><Super>` vs `<Super><Alt>`).
+1. **Normalize:** Target custom keystrokes are parsed using pure JS string normalization to normalize modifier ordering (`<Alt><Super>` vs `<Super><Alt>`) and aliases without GTK dependency.
 2. **Scan:** Iterates through native schemas (`wm.keybindings`, `mutter.keybindings`, `shell.keybindings`).
 3. **Filter:** If a native array contains the normalized shortcut string, it is explicitly filtered out.
 4. **Backup:** The *original* array is saved into `org.gnome.shell.extensions.workflow-tiling.shadowed-keybindings` (JSON string).
