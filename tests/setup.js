@@ -92,15 +92,16 @@ global.workspace_manager = {
     }))
 };
 let _laterCounter = 0;
+const mockLaters = {
+    add: vi.fn((type, callback) => {
+        const id = ++_laterCounter;
+        callback();
+        return id;
+    }),
+    remove: vi.fn()
+};
 global.compositor = {
-    get_laters: vi.fn(() => ({
-        add: vi.fn((type, callback) => {
-            const id = ++_laterCounter;
-            callback();
-            return id;
-        }),
-        remove: vi.fn()
-    }))
+    get_laters: vi.fn(() => mockLaters)
 };
 global.get_pointer = vi.fn(() => [0, 0, 0]);
 global.window_group = {

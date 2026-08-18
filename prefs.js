@@ -113,10 +113,18 @@ class ShortcutRow extends Adw.ActionRow {
         this.activatable = true;
         this.connect('activated', () => this._recordShortcut());
         
-        this.settings.connect(`changed::${this.keyName}`, () => {
+        this._settingsChangedId = this.settings.connect(`changed::${this.keyName}`, () => {
             this.shortcutLabel.accelerator = this._getAccelerator();
             if (this._onChangeCallback) this._onChangeCallback();
         });
+    }
+
+    vfunc_dispose() {
+        if (this._settingsChangedId && this.settings) {
+            this.settings.disconnect(this._settingsChangedId);
+            this._settingsChangedId = 0;
+        }
+        super.vfunc_dispose();
     }
 
     setWarning(isWarning, tooltip = '') {
@@ -138,7 +146,7 @@ Object.assign(ShortcutRow.prototype, ShortcutRowMixin);
 // Layout editor page outsourced to lib/editor/
 export default class WorkflowTilingPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
-        const settings = this.getSettings();
+        const settings = this.getSettings('org.gnome.shell.extensions.workflow-tiling');
 
         const page = new Adw.PreferencesPage({ title: 'General', icon_name: 'preferences-system-symbolic' });
         const shortcutsPage = new Adw.PreferencesPage({ title: 'Keyboard Shortcuts', icon_name: 'input-keyboard-symbolic' });

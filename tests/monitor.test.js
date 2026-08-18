@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MonitorManager } from '../lib/monitor.js';
 import Meta from 'gi://Meta';
+import GLib from 'gi://GLib';
 
 describe('MonitorManager', () => {
     let controller;
@@ -134,5 +135,15 @@ describe('MonitorManager', () => {
 
         const targetUp = monitorManager.getMonitorInDirection(0, 'up');
         expect(targetUp).toBe(-1);
+    });
+
+    it('should remove all tracked idle sources and laters on clear', () => {
+        monitorManager._idleSourceIds.add(42);
+        monitorManager._pendingLaterId = 99;
+        monitorManager.clear();
+        expect(GLib.source_remove).toHaveBeenCalledWith(42);
+        expect(global.compositor.get_laters().remove).toHaveBeenCalledWith(99);
+        expect(monitorManager._idleSourceIds.size).toBe(0);
+        expect(monitorManager._pendingLaterId).toBe(0);
     });
 });
