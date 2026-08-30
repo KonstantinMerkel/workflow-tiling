@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkspaceLayout, WorkspaceManager } from '../lib/workspace.js';
-import { LayoutParser } from '../lib/layout.js';
+import { LayoutParser } from '../lib/utils/layout-parser.js';
 
 describe('WorkspaceLayout', () => {
     const defaultJson = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}';

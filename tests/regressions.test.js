@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TilingController } from '../lib/controller.js';
-import { LayoutParser } from '../lib/layout.js';
+import { LayoutParser } from '../lib/utils/layout-parser.js';
 import { WorkspaceLayout } from '../lib/workspace.js';
 import Meta from 'gi://Meta';
 
