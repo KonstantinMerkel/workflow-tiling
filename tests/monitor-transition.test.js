@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Layout, ScreenEstate, LayoutParser } from '../lib/layout.js';
+import { Layout, ScreenEstate } from '../lib/layout.js';
+import { LayoutParser } from '../lib/utils/layout-parser.js';
 import { WorkspaceLayout } from '../lib/workspace.js';
 import { SettingsManager } from '../lib/settings.js';
 import Meta from 'gi://Meta';

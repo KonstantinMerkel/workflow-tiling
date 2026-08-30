@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ScreenEstate, Layout, LayoutParser, LayoutValidator } from '../lib/layout.js';
+import { ScreenEstate, Layout } from '../lib/layout.js';
+import { LayoutParser } from '../lib/utils/layout-parser.js';
+import { LayoutValidator } from '../lib/utils/layout-validators.js';
 
 describe('ScreenEstate', () => {
     it('should calculate absolute coordinates with gaps', () => {
@@ -53,7 +55,7 @@ describe('Validation & Immutability', () => {
     it('should throw on overlapping estates in Layout', () => {
         const e1 = new ScreenEstate(0, 0, 0, 60, 100);
         const e2 = new ScreenEstate(1, 40, 0, 60, 100);
-        expect(() => new Layout([e1, e2])).toThrow('Overlap detected');
+        expect(() => new Layout([e1, e2])).toThrow('overlap detected');
     });
 
     it('should be immutable', () => {
@@ -79,24 +81,24 @@ describe('Validation & Immutability', () => {
 describe('LayoutValidator', () => {
     describe('validateCoverage', () => {
         it('should pass for exact 10000 area', () => {
-            const layout = new Layout([
+            expect(() => new Layout([
                 new ScreenEstate(0, 0, 0, 100, 100)
-            ]);
-            expect(() => LayoutValidator.validateCoverage(layout)).not.toThrow();
+            ])).not.toThrow();
         });
 
         it('should throw if area is less than 10000', () => {
-            const layout = new Layout([
+            expect(() => new Layout([
                 new ScreenEstate(0, 0, 0, 50, 100),
                 new ScreenEstate(1, 50, 0, 40, 100)
-            ]);
-            expect(() => LayoutValidator.validateCoverage(layout)).toThrow(/expected 10000/);
+            ])).toThrow(/must have no gaps/);
         });
     });
 
     describe('Arbitrary Transitions', () => {
         it('should allow arbitrary transitions like 50/50 split to 33/33/33 split', () => {
             const json = JSON.stringify({
+                "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
+                "2": [ { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 }, { "x": 50, "y": 0, "w": 50, "h": 100, "id": 1 } ],
                 "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
                 "2": [ { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 }, { "x": 50, "y": 0, "w": 50, "h": 100, "id": 1 } ],
                 "3": [ { "x": 0, "y": 0, "w": 33.33, "h": 100, "id": 0 }, { "x": 33.33, "y": 0, "w": 33.33, "h": 100, "id": 1 }, { "x": 66.66, "y": 0, "w": 33.34, "h": 100, "id": 2 } ]
@@ -140,7 +142,9 @@ describe('LayoutParser', () => {
 
     it('should sort estates by id property', () => {
         const json = JSON.stringify({
-            "3": [
+            "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
+                "2": [ { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 }, { "x": 50, "y": 0, "w": 50, "h": 100, "id": 1 } ],
+                "3": [
                 { "x": 33.33, "y": 0, "w": 33.33, "h": 100, "id": 2 },
                 { "x": 66.66, "y": 0, "w": 33.34, "h": 100, "id": 1 },
                 { "x": 0, "y": 0, "w": 33.33, "h": 100, "id": 0 }
@@ -155,16 +159,18 @@ describe('LayoutParser', () => {
 
     it('should throw if any estate is missing an id', () => {
         const json = JSON.stringify({
+            "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
             "2": [
                 { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 },
                 { "x": 50, "y": 0, "w": 50, "h": 100 }
             ]
         });
-        expect(() => LayoutParser.parse(json)).toThrow(/has estate without an id/);
+        expect(() => LayoutParser.parse(json)).toThrow(/is missing id 1/);
     });
 
     it('should throw if duplicate ids are present', () => {
         const json = JSON.stringify({
+            "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
             "2": [
                 { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 },
                 { "x": 50, "y": 0, "w": 50, "h": 100, "id": 0 }
@@ -175,6 +181,7 @@ describe('LayoutParser', () => {
 
     it('should throw if id is out of bounds', () => {
         const json = JSON.stringify({
+            "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
             "2": [
                 { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 },
                 { "x": 50, "y": 0, "w": 50, "h": 100, "id": 2 }
