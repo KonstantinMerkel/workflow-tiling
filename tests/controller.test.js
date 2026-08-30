@@ -3,7 +3,7 @@ import { TilingController } from '../lib/controller.js';
 import { LayoutParser } from '../lib/layout.js';
 import Meta from 'gi://Meta';
 
-const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
+const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}';
 
 describe('TilingController', () => {
     let controller;
@@ -286,6 +286,41 @@ describe('TilingController', () => {
         // Window tracked in layout despite minimized=true (restoring bypass)
         const layout = controller.workspaceManager.getLayout(ws);
         expect(layout.monitors.get('monitor-1').windows).toContain(win);
+    });
+
+    it('should tile evacuated window when manually unminimized on remaining monitor', () => {
+        const ws = { 
+            id: 'ws1', 
+            get_work_area_for_monitor: vi.fn(() => ({ x: 0, y: 0, width: 1000, height: 1000 })),
+            list_windows: () => [win]
+        };
+        
+        const win = createMockWindow(1, ws, 1);
+        controller.tilingRequest(win);
+        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
+        
+        // Remove monitor-1 -> triggers evacuation
+        const manager = Meta.Backend.get_monitor_manager();
+        vi.mocked(manager.get_logical_monitors).mockReturnValue([
+            { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] }
+        ]);
+        vi.mocked(win.get_monitor).mockReturnValue(0);
+        controller.tilingRequest(win);
+
+        expect(win.minimize).toHaveBeenCalled();
+        expect(win.minimized).toBe(true);
+        expect(controller.monitorManager.isEvacuated(win)).toBe(true);
+
+        controller.monitorManager.handleMonitorsChanged();
+
+        // User manually unminimizes window on remaining monitor (monitor-0)
+        win.minimized = false;
+        controller.tilingRequest(win);
+
+        // Evacuation flag should be cleared and window tracked on monitor-0
+        expect(controller.monitorManager.isEvacuated(win)).toBe(false);
+        const layout = controller.workspaceManager.getLayout(ws);
+        expect(layout.monitors.get('monitor-0').windows).toContain(win);
     });
 
     it('should handle monitor index shifting via hydration sweep', () => {

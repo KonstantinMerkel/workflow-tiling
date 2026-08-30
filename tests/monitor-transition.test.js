@@ -5,11 +5,11 @@ import { SettingsManager } from '../lib/settings.js';
 import Meta from 'gi://Meta';
 import Gio from 'gi://Gio';
 
-const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
+const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}';
 
 describe('Edging Tile Identification', () => {
     it('should identify edging tile for layout of size 1', () => {
-        const estates = [new ScreenEstate(0, 0, 100, 100)];
+        const estates = [new ScreenEstate(0, 0, 0, 100, 100)];
         const layout = new Layout(estates);
         expect(layout.getEdgingSlot('left')).toBe(0);
         expect(layout.getEdgingSlot('right')).toBe(0);
@@ -20,8 +20,8 @@ describe('Edging Tile Identification', () => {
     it('should identify edging tile for layout of size 2 (tie-break right/upper)', () => {
         // Vertical split: left slot 0, right slot 1
         const estates = [
-            new ScreenEstate(0, 0, 50, 100),
-            new ScreenEstate(50, 0, 50, 100)
+            new ScreenEstate(0, 0, 0, 50, 100),
+            new ScreenEstate(1, 50, 0, 50, 100)
         ];
         const layout = new Layout(estates);
         expect(layout.getEdgingSlot('left')).toBe(0);
@@ -34,9 +34,9 @@ describe('Edging Tile Identification', () => {
     it('should identify edging tile for layout of size 3 (escalator layout)', () => {
         // Left slot 0, top-right slot 1, bottom-right slot 2
         const estates = [
-            new ScreenEstate(0, 0, 50, 100),
-            new ScreenEstate(50, 0, 50, 50),
-            new ScreenEstate(50, 50, 50, 50)
+            new ScreenEstate(0, 0, 0, 50, 100),
+            new ScreenEstate(1, 50, 0, 50, 50),
+            new ScreenEstate(2, 50, 50, 50, 50)
         ];
         const layout = new Layout(estates);
         expect(layout.getEdgingSlot('left')).toBe(0);
@@ -51,9 +51,9 @@ describe('Edging Tile Identification', () => {
     it('should prioritize longest edge for edging tile identification', () => {
         // Left slot 0 (30 width), top-right slot 1 (70 width, 40 height), bottom-right slot 2 (70 width, 60 height)
         const estates = [
-            new ScreenEstate(0, 0, 30, 100),
-            new ScreenEstate(30, 0, 70, 40),
-            new ScreenEstate(30, 40, 70, 60)
+            new ScreenEstate(0, 0, 0, 30, 100),
+            new ScreenEstate(1, 30, 0, 70, 40),
+            new ScreenEstate(2, 30, 40, 70, 60)
         ];
         const layout = new Layout(estates);
         expect(layout.getEdgingSlot('left')).toBe(0);
