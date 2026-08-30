@@ -4,7 +4,7 @@ import { LayoutParser } from '../lib/layout.js';
 import { WorkspaceLayout } from '../lib/workspace.js';
 import Meta from 'gi://Meta';
 
-const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":1}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":100,"id":2}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":1},{"x":50,"y":0,"w":50,"h":50,"id":2},{"x":50,"y":50,"w":50,"h":50,"id":3}]}';
+const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}';
 const escalator = LayoutParser.parse(DEFAULT_JSON);
 
 describe('Regressions', () => {
