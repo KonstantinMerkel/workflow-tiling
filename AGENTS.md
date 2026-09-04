@@ -24,7 +24,7 @@ Refrain from "diary comments" that describe the history or process of changes.
 **CRITICAL DOCS MANDATE**: Always keep documentation files (`architecture.md`, `layouts.md`, `README.md`, etc.) up-to-date when altering code functionality. If you change a class name, execution flow, or API, immediately update the relevant docs.
 
 ### 3. Logging Suggestion
-It is highly suggested to use debuggable logging (`Logger` in `lib/logger.js`). When debugging complex flows, include verbose logs for state sequences to aid troubleshooting.
+It is highly suggested to use debuggable logging (`Logger` in `lib/utils/logger.js`). When debugging complex flows, include verbose logs for state sequences to aid troubleshooting.
 
 ### 4. Settings UI Design
 Follow a **"minimal clutter, expand only after needed"** design philosophy for `prefs.js`. 

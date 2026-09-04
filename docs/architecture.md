@@ -63,7 +63,7 @@ Loads configuration preferences.
 Parses layout JSON into valid escalator transitions.
 Exposes monitor transition behavior configuration.
 
-## Logger (`lib/logger.js`)
+## Logger (`lib/utils/logger.js`)
 Provides debug and trace logging.
 Configurable output verbosity.
 

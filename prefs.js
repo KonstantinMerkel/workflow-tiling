@@ -5,7 +5,7 @@ import Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-import { Logger } from './lib/logger.js';
+import { Logger } from './lib/utils/logger.js';
 import { LayoutPreviewPage } from './lib/editor/preview.js';
 import { LayoutEditorPage } from './lib/editor/editor.js';
 
