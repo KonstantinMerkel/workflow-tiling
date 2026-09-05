@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import { TilingController } from './lib/controller.js';
 import { SignalListener } from './lib/signals.js';
 import { SettingsManager } from './lib/settings.js';
-import { Logger } from './lib/logger.js';
+import { Logger } from './lib/utils/logger.js';
 import { KeybindingManager } from './lib/keybindings.js';
 
 /**
@@ -11,7 +11,7 @@ import { KeybindingManager } from './lib/keybindings.js';
  */
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
-import { LayoutParser } from './lib/layout.js';
+import { LayoutParser } from './lib/utils/layout-parser.js';
 
 export default class WorkflowTilingExtension extends Extension {
     enable() {

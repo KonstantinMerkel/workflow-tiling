@@ -13,7 +13,7 @@ We love a clean UI! For `prefs.js`, follow a **"minimal clutter, expand only aft
 Feel free to use `Adw` (libadwaita) components and bind visibility state dynamically to reduce visual noise.
 
 ### Logging
-Using debuggable logging (`Logger` in `lib/logger.js`) is highly suggested. Including verbose logs for complex state sequences makes troubleshooting much easier for everyone — especially me. Thank you!
+Using debuggable logging (`Logger` in `lib/utils/logger.js`) is highly suggested. Including verbose logs for complex state sequences makes troubleshooting much easier for everyone — especially me. Thank you!
 
 ### GNOME APIs & Event-Driven Architecture
 We aim to use the best solutions and APIs available for GNOME Shell.

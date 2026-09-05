@@ -21,10 +21,10 @@ Exclude explanations of why alternative approaches were rejected.
 Do not use temporal language such as "new", "now", or "replaced".
 Refrain from "diary comments" that describe the history or process of changes.
 
-**CRITICAL DOCS MANDATE**: Always keep documentation files (`architecture.md`, `layouts.md`, `README.md`, etc.) up-to-date when altering code functionality. If you change a class name, execution flow, or API, immediately update the relevant docs.
+**CRITICAL DOCS MANDATE**: Always keep documentation files (`layouts.md`, `README.md`, etc.) up-to-date when altering code functionality. If you change a class name, execution flow, or API, immediately update the relevant docs.
 
 ### 3. Logging Suggestion
-It is highly suggested to use debuggable logging (`Logger` in `lib/logger.js`). When debugging complex flows, include verbose logs for state sequences to aid troubleshooting.
+It is highly suggested to use debuggable logging (`Logger` in `lib/utils/logger.js`). When debugging complex flows, include verbose logs for state sequences to aid troubleshooting.
 
 ### 4. Settings UI Design
 Follow a **"minimal clutter, expand only after needed"** design philosophy for `prefs.js`. 
@@ -41,6 +41,5 @@ Always use the newest solutions and APIs for GNOME Shell.
 Avoid arbitrary timeouts. Rely on GNOME Shell signals (`size-changed`, `window-created`, etc.) or frame-synced deferrals (`GLib.idle_add`, `Meta.LaterType.BEFORE_REDRAW`) instead of `GLib.timeout_add`.
 
 ## Cross References
-- **Architecture**: See `architecture.md` for discrete responsibilities and execution flow. **Note**: We rely on *insertion-order based slots* (historical tracking) rather than purely arbitrary visual spatial arrangements. `StateTracker` matches windows to slots via their internal IDs (`get_id()`).
+- **Architecture**: We rely on *insertion-order based slots* (historical tracking) rather than purely arbitrary visual spatial arrangements. `StateTracker` matches windows to slots via their internal IDs (`get_id()`).
 - **Layout JSONs**: See `layouts.md` for guidelines on how the Escalator layouts and transitions are formatted in JSON.
-- **Vision**: See `vision.md` for core philosophy and scaling design.
