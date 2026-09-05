@@ -75,7 +75,7 @@ describe('MonitorManager', () => {
         };
         controller.workspaceManager.getLayout.mockReturnValue(mockGrid);
 
-        const evacuated = monitorManager.checkEvacuation(mockWin, mockWrapper, 'monitor-0', mockWorkspace);
+        const evacuated = monitorManager.interceptEvacuation(mockWin, mockWrapper, 'monitor-0', mockWorkspace);
 
         expect(evacuated).toBe(true);
         expect(mockWin.minimize).toHaveBeenCalled();
