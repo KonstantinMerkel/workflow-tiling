@@ -11,7 +11,7 @@ import { KeybindingManager } from './lib/keybindings.js';
  */
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
-import { LayoutParser } from './lib/layout.js';
+import { LayoutParser } from './lib/utils/layout-parser.js';
 
 export default class WorkflowTilingExtension extends Extension {
     enable() {
