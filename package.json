@@ -5,10 +5,14 @@
   "main": "extension.js",
   "type": "module",
   "scripts": {
+    "test:schema": "glib-compile-schemas --strict schemas/",
+    "test:imports": "npx rollup -c rollup.check.js > /dev/null",
+    "pretest": "npm run test:schema && npm run test:imports",
     "test": "vitest run"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.6",
+    "rollup": "^4.63.1",
     "vitest": "^4.1.6"
   }
 }
