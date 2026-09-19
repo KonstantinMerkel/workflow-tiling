@@ -24,7 +24,8 @@ describe('WindowWrapper', () => {
 
         mockController = {
             untile: vi.fn(),
-            tilingRequest: vi.fn()
+            tilingRequest: vi.fn(),
+            isOverrideActive: vi.fn(() => false)
         };
         
         vi.clearAllMocks();
@@ -157,16 +158,16 @@ describe('WindowWrapper', () => {
     });
 
     it('should correctly identify active override', () => {
-        mockController._authorizedOverrides = new Set([mockWindow]);
+        mockController.isOverrideActive = vi.fn(() => true);
         const wrapper = new WindowWrapper(mockWindow, mockController);
         expect(wrapper.isOverrideActive()).toBe(true);
 
-        mockController._authorizedOverrides = new Set();
+        mockController.isOverrideActive = vi.fn(() => false);
         expect(wrapper.isOverrideActive()).toBe(false);
     });
 
     it('should skip applyGeometry if override is active', () => {
-        mockController._authorizedOverrides = new Set([mockWindow]);
+        mockController.isOverrideActive = vi.fn(() => true);
         const wrapper = new WindowWrapper(mockWindow, mockController);
         wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
         expect(mockWindow.move_resize_frame).not.toHaveBeenCalled();

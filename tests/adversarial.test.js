@@ -75,6 +75,7 @@ describe('Adversarial Tests', () => {
                 applyGeometry: vi.fn(),
                 bindSignals: vi.fn(),
                 bindSizeChanged: vi.fn(),
+                isInTransit: vi.fn(() => false),
                 destroy: vi.fn()
             };
             controller._windowWrappers.set(win, wrapper);
@@ -184,9 +185,9 @@ describe('Adversarial Tests', () => {
             const win2 = { move_to_monitor: vi.fn(), get_monitor: () => 2, is_skip_taskbar: () => false };
 
             // Wrap them
-            controller._windowWrappers.set(win0, { monitorId: 'monitor-0', monitorIndex: 0, destroy: vi.fn() });
-            controller._windowWrappers.set(win1, { monitorId: 'monitor-1', monitorIndex: 1, destroy: vi.fn() });
-            controller._windowWrappers.set(win2, { monitorId: 'monitor-2', monitorIndex: 2, destroy: vi.fn() });
+            controller._windowWrappers.set(win0, { monitorId: 'monitor-0', monitorIndex: 0, destroy: vi.fn(), beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(win1, { monitorId: 'monitor-1', monitorIndex: 1, destroy: vi.fn(), beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(win2, { monitorId: 'monitor-2', monitorIndex: 2, destroy: vi.fn(), beginMonitorTransit: vi.fn() });
 
             // Switch monitors with active index = 0
             // targetMonitorIndex = (0 + 1) % 3 = 1
@@ -213,10 +214,10 @@ describe('Adversarial Tests', () => {
             const win3 = { move_to_monitor: vi.fn(), get_monitor: () => 3, is_skip_taskbar: () => false };
 
             // Wrap them
-            controller._windowWrappers.set(win0, { monitorId: 'monitor-0', monitorIndex: 0, destroy: vi.fn() });
-            controller._windowWrappers.set(win1, { monitorId: 'monitor-1', monitorIndex: 1, destroy: vi.fn() });
-            controller._windowWrappers.set(win2, { monitorId: 'monitor-2', monitorIndex: 2, destroy: vi.fn() });
-            controller._windowWrappers.set(win3, { monitorId: 'monitor-3', monitorIndex: 3, destroy: vi.fn() });
+            controller._windowWrappers.set(win0, { monitorId: 'monitor-0', monitorIndex: 0, destroy: vi.fn(), beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(win1, { monitorId: 'monitor-1', monitorIndex: 1, destroy: vi.fn(), beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(win2, { monitorId: 'monitor-2', monitorIndex: 2, destroy: vi.fn(), beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(win3, { monitorId: 'monitor-3', monitorIndex: 3, destroy: vi.fn(), beginMonitorTransit: vi.fn() });
 
             // Switch monitors with active index = 2
             // targetMonitorIndex = (2 + 1) % 4 = 3
