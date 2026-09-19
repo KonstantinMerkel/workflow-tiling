@@ -23,15 +23,12 @@ describe('MonitorManager', () => {
             setBatchMode: vi.fn(),
             retileAll: vi.fn(),
             hydrate: vi.fn(),
-            clearRestoringWindows: vi.fn(),
             workspaceManager: {
                 clearLayouts: vi.fn(),
                 getLayout: vi.fn()
             },
             _windowWrappers: new Map(),
-            _restoringWindows: new Set(),
             updateWindowWrapperMonitor: vi.fn(),
-            addRestoringWindow: vi.fn(),
             tilingRequest: vi.fn()
         };
 
@@ -113,7 +110,7 @@ describe('MonitorManager', () => {
         expect(mockWin.move_to_monitor).toHaveBeenCalledWith(1);
         expect(mockWin.unminimize).toHaveBeenCalled();
         expect(controller.updateWindowWrapperMonitor).toHaveBeenCalledWith(mockWin, 'monitor-1', 1);
-        expect(controller.addRestoringWindow).toHaveBeenCalledWith(mockWin, 2);
+        expect(monitorManager._restoringWindows.get(mockWin)).toBe(2);
         expect(monitorManager.isEvacuated(mockWin)).toBe(false);
         expect(controller.hydrate).toHaveBeenCalled();
         expect(monitorManager._lastMonitorCount).toBe(2);

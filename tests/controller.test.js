@@ -373,7 +373,7 @@ describe('TilingController', () => {
         expect(controller.workspaceManager.layouts.size).toBe(0);
         expect(controller._retileTimeouts.size).toBe(0);
         expect(controller.monitorManager._evacuatedWindows.size).toBe(0);
-        expect(controller._restoringWindows.size).toBe(0);
+        expect(controller.monitorManager._restoringWindows.size).toBe(0);
         expect(controller.monitorManager._monitorsChangedPending).toBe(false);
     });
 
@@ -384,8 +384,8 @@ describe('TilingController', () => {
             throw new Error('test error');
         });
         
-        // Should not throw, should be caught
-        expect(() => controller.tilingRequest(win)).not.toThrow();
+        // Should throw, as blanket try-catch was removed in favor of explicit checks
+        expect(() => controller.tilingRequest(win)).toThrow('test error');
     });
 
     it('should gracefully handle errors in untile', () => {
@@ -442,7 +442,7 @@ describe('TilingController', () => {
         const win2 = createMockWindow(2, ws, 0); // Evacuated/Restoring
 
         vi.mocked(global.display.list_all_windows).mockReturnValue([win1]);
-        controller._restoringWindows.set(win2, 0);
+        controller.monitorManager._restoringWindows.set(win2, 0);
         
         vi.spyOn(controller, 'tilingRequest');
         controller.hydrate();
