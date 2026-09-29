@@ -476,7 +476,7 @@ describe('TilingController', () => {
             controller.moveWindowDirection(win, 'left');
 
             expect(layout.moveWindowDirection).toHaveBeenCalledWith('monitor-0', win, 'left');
-            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
+            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
         });
 
         it('should do nothing if window is untracked', () => {
@@ -519,7 +519,7 @@ describe('TilingController', () => {
             expect(indicator.destroy).toHaveBeenCalled();
             expect(controller.dragManager._activeDrag).toBeNull();
             expect(layout.swapWindowByPointer).toHaveBeenCalledWith('monitor-0', win, expect.any(Number), expect.any(Number), expect.any(Object), expect.any(Object));
-            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
+            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
         });
 
         it('should handle position-changed and update indicator', () => {

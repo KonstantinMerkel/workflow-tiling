@@ -418,9 +418,9 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             monitorManager: mockMonitorManager,
             _windowWrappers: new Map(),
             _scheduleRetile: vi.fn(),
-            updateWindowWrapperMonitor: function(win, id, idx) {
+            updateWindowWrapperMonitor: function(win, monitor) {
                 const w = this._windowWrappers.get(win);
-                if (w) { w.monitorId = id; w.monitorIndex = idx; }
+                if (w) { w.monitorId = monitor.id; w.monitorIndex = monitor.index; }
             }
         };
         const ws = { index: () => 0 };
@@ -431,7 +431,7 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             get_frame_rect: () => ({ x: 0, y: 0, width: 1000, height: 1000 }),
             move_to_monitor: vi.fn()
         };
-        const wrapper0 = { monitorId: 'monitor-0', monitorIndex: 0 };
+        const wrapper0 = { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() };
         controller._windowWrappers.set(win0, wrapper0);
 
         layout.trackWindow(win0, 'monitor-0');
@@ -448,7 +448,7 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
         expect(wrapper0.monitorIndex).toBe(1);
         expect(win0.move_to_monitor).toHaveBeenCalledWith(1);
 
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-1', 1);
+        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
+        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-1', index: 1 }));
     });
 });
