@@ -181,8 +181,8 @@ describe('DragManager Cross-Monitor', () => {
         expect(wrapper.monitorIndex).toBe(1);
 
         // Verify schedule retiles called on both
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-0', 0);
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, 'monitor-1', 1);
+        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
+        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-1', index: 1 }));
     });
 
     it('should handle empty monitor target drop', () => {

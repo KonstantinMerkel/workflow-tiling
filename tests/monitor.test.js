@@ -72,7 +72,10 @@ describe('MonitorManager', () => {
         };
         controller.workspaceManager.getLayout.mockReturnValue(mockGrid);
 
-        const evacuated = monitorManager.interceptEvacuation(mockWin, mockWrapper, 'monitor-0', mockWorkspace);
+        const evacuated = monitorManager.isEvacuation(mockWin, mockWrapper, 'monitor-0');
+        if (evacuated) {
+            monitorManager.handleEvacuation(mockWin, mockWrapper);
+        }
 
         expect(evacuated).toBe(true);
         expect(mockWin.minimize).toHaveBeenCalled();
@@ -109,7 +112,7 @@ describe('MonitorManager', () => {
 
         expect(mockWin.move_to_monitor).toHaveBeenCalledWith(1);
         expect(mockWin.unminimize).toHaveBeenCalled();
-        expect(controller.updateWindowWrapperMonitor).toHaveBeenCalledWith(mockWin, 'monitor-1', 1);
+        expect(controller.updateWindowWrapperMonitor).toHaveBeenCalledWith(mockWin, expect.objectContaining({ id: 'monitor-1', index: 1 }));
         expect(monitorManager._restoringWindows.get(mockWin)).toBe(2);
         expect(monitorManager.isEvacuated(mockWin)).toBe(false);
         expect(controller.hydrate).toHaveBeenCalled();

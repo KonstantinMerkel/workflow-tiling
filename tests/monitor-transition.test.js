@@ -109,9 +109,9 @@ describe('Monitor Transitions', () => {
             settings: mockSettings,
             _windowWrappers: new Map(),
             _scheduleRetile: vi.fn(),
-            updateWindowWrapperMonitor: function(win, id, idx) {
+            updateWindowWrapperMonitor: function(win, monitor) {
                 const w = this._windowWrappers.get(win);
-                if (w) { w.monitorId = id; w.monitorIndex = idx; }
+                if (w) { w.monitorId = monitor.id; w.monitorIndex = monitor.index; }
             }
         };
     });
@@ -128,10 +128,10 @@ describe('Monitor Transitions', () => {
             const winC = createMockWindow('C', ws, 1);
             const winD = createMockWindow('D', ws, 1);
 
-            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0 });
-            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0 });
-            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1 });
-            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1 });
+            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
 
             layout.trackWindow(winA, 'monitor-0');
             layout.trackWindow(winB, 'monitor-0');
@@ -176,10 +176,10 @@ describe('Monitor Transitions', () => {
             const winC = createMockWindow('C', ws, 1);
             const winD = createMockWindow('D', ws, 1);
 
-            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0 });
-            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0 });
-            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1 });
-            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1 });
+            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
 
             layout.trackWindow(winA, 'monitor-0');
             layout.trackWindow(winB, 'monitor-0'); // slot 1
@@ -227,7 +227,7 @@ describe('Monitor Transitions', () => {
             // Source: 1 window. Target: 0 windows.
             const winA = createMockWindow('A', ws, 0);
 
-            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0 });
+            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
 
             layout.trackWindow(winA, 'monitor-0');
 
