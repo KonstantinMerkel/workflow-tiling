@@ -21,7 +21,7 @@ describe('DragManager Cross-Monitor', () => {
         
         global.display.get_primary_monitor = () => manager.get_primary_monitor();
         global.display.get_current_monitor = vi.fn(() => {
-            const [x, y] = global.get_pointer ? global.get_pointer() : [0, 0];
+            const [x] = global.get_pointer ? global.get_pointer() : [0, 0];
             if (x >= 1000) return 1;
             return 0;
         });

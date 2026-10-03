@@ -10,7 +10,7 @@ describe('WindowWrapper', () => {
             unmanaged: false,
             minimized: false,
             get_title: vi.fn(() => 'Test Window'),
-            connect: vi.fn((name, cb) => {
+            connect: vi.fn((name) => {
                 return name === 'size-changed' ? 99 : 1;
             }),
             disconnect: vi.fn(),

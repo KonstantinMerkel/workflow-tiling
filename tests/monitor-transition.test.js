@@ -3,8 +3,6 @@ import { Layout, ScreenEstate } from '../lib/layout.js';
 import { LayoutParser } from '../lib/utils/layout-parser.js';
 import { WorkspaceLayout } from '../lib/workspace.js';
 import { SettingsManager } from '../lib/settings.js';
-import Meta from 'gi://Meta';
-import Gio from 'gi://Gio';
 
 const DEFAULT_JSON = '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}';
 
@@ -279,7 +277,7 @@ describe('Settings Binding Toggle Updates', () => {
 
     it('should connect settings change signal for monitor-transition-behavior', () => {
         const onSettingsChanged = vi.fn();
-        const settingsManager = new SettingsManager(mockExtension, onSettingsChanged);
+        new SettingsManager(mockExtension, onSettingsChanged);
 
         // Verify connected change handler
         expect(mockGioSettings.connect).toHaveBeenCalledWith(

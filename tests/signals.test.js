@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import GLib from 'gi://GLib';
-import { SignalListener, TILABLE_WINDOW_TYPES } from '../lib/signals.js';
+import { SignalListener } from '../lib/signals.js';
 import Meta from 'gi://Meta';
 
 describe('SignalListener', () => {
@@ -32,7 +32,7 @@ describe('SignalListener', () => {
 
         it('should track idle source IDs when _addWindow is called', () => {
             // Override idle_add to NOT execute callback (simulate async)
-            GLib.idle_add = vi.fn((priority, cb) => 42);
+            GLib.idle_add = vi.fn(() => 42);
 
             const listener = new SignalListener(mockController);
             const mockWindow = {
@@ -45,7 +45,7 @@ describe('SignalListener', () => {
         });
 
         it('should clear pending idles on unbind and call source_remove', () => {
-            GLib.idle_add = vi.fn((priority, cb) => 77);
+            GLib.idle_add = vi.fn(() => 77);
 
             const listener = new SignalListener(mockController);
             const mockWindow = {

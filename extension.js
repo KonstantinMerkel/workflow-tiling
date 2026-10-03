@@ -1,5 +1,4 @@
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-import Gio from 'gi://Gio';
 import { TilingController } from './lib/controller.js';
 import { SignalListener } from './lib/signals.js';
 import { SettingsManager } from './lib/settings.js';
@@ -40,7 +39,7 @@ export default class WorkflowTilingExtension extends Extension {
     _applyCustomLayouts() {
         if (!this._settings || !this._controller) return false;
         const customJson = this._settings.getCustomLayouts();
-        let escalator = null;
+        let escalator;
 
         try {
             escalator = LayoutParser.parse(customJson);
