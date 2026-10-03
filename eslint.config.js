@@ -48,7 +48,7 @@ export default [
             "no-inner-declarations": "warn",
             "no-unsafe-finally": "warn",
             "no-unsafe-negation": "warn",
-            "no-dupe-keys": "warn",
+            "no-dupe-keys": "error",
             "preserve-caught-error": "warn"
         }
     }

@@ -76,7 +76,7 @@ describe('Adversarial Tests', () => {
                 bindSignals: vi.fn(),
                 bindSizeChanged: vi.fn(),
                 isInTransit: vi.fn(() => false),
-                beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; },
+                beginMonitorTransit: vi.fn(),
                 destroy: vi.fn()
             };
             controller._windowWrappers.set(win, wrapper);
