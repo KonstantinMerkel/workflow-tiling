@@ -5,6 +5,9 @@ import globals from "globals";
 export default [
     js.configs.recommended,
     {
+        ignores: ["coverage/**"]
+    },
+    {
         files: ["**/*.js"],
         languageOptions: {
             ecmaVersion: 2022,
@@ -48,13 +51,20 @@ export default [
             "no-unsafe-negation": "error",
             "no-dupe-keys": "error",
             "preserve-caught-error": "warn",
-            "max-len": ["warn", { "code": 120 }]
+            // "max-params": ["warn", 3],
+            // "max-returns": ["warn", 3], // (Requires 3rd-party plugin)
+            "max-len": ["warn", { "code": 120, "ignorePattern": "^(?=.*Logger\\.).{0,160}$" }],
+            "eqeqeq": ["error", "always"],
+            "no-shadow": "warn",
+            "prefer-const": "warn",
+            "no-var": "error"
         }
     },
     {
         files: ["tests/**/*.js"],
         rules: {
-            "max-len": "off"
+            "max-len": "off",
+            "no-shadow": "off"
         }
     }
 ];

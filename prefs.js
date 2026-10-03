@@ -79,7 +79,7 @@ const ShortcutRowMixin = {
 };
 
 const ShortcutRow = GObject.registerClass(
-    class ShortcutRow extends Adw.ActionRow {
+    class PrefShortcutRow extends Adw.ActionRow {
         _init(settings, keyName, title, origin = '') {
             super._init({ title });
             this.settings = settings;
