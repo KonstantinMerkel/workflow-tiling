@@ -169,7 +169,7 @@ describe('TilingController', () => {
         const win = createMockWindow(1, ws, 1);
 
         controller.tilingRequest(win);
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-1');
         
         // Mock monitor removal: only monitor-0 remains
         const manager = Meta.Backend.get_monitor_manager();
@@ -191,7 +191,7 @@ describe('TilingController', () => {
         expect(controller.monitorManager._evacuatedWindows.get(win).monitorId).toBe('monitor-1');
         
         // Metadata should have been updated to the new monitor
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-0');
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-0');
 
         // Finalize change via signal
         controller.monitorManager.handleMonitorsChanged();
@@ -200,8 +200,8 @@ describe('TilingController', () => {
         // Simulate signal firing when window is minimized/moved (after hydration or during)
         controller.tilingRequest(win);
 
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-0');
-        expect(controller._windowWrappers.get(win).monitorIndex).toBe(0);
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-0');
+        expect(controller.getWrapper(win).monitorIndex).toBe(0);
         expect(win.minimized).toBe(true);
     });
 
@@ -243,7 +243,7 @@ describe('TilingController', () => {
         vi.mocked(global.workspace_manager.get_active_workspace).mockReturnValue(ws);
 
         controller.tilingRequest(win);
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-1');
         
         // Remove monitor-1
         const manager = Meta.Backend.get_monitor_manager();
@@ -280,8 +280,8 @@ describe('TilingController', () => {
         expect(controller.monitorManager._evacuatedWindows.size).toBe(0);
 
         // Meta cache updated to restored monitor
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
-        expect(controller._windowWrappers.get(win).monitorIndex).toBe(1);
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-1');
+        expect(controller.getWrapper(win).monitorIndex).toBe(1);
 
         // Window tracked in layout despite minimized=true (restoring bypass)
         const layout = controller.workspaceManager.getLayout(ws);
@@ -297,7 +297,7 @@ describe('TilingController', () => {
         
         const win = createMockWindow(1, ws, 1);
         controller.tilingRequest(win);
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-1');
         
         // Remove monitor-1 -> triggers evacuation
         const manager = Meta.Backend.get_monitor_manager();
@@ -337,8 +337,8 @@ describe('TilingController', () => {
         vi.mocked(global.display.list_all_windows).mockReturnValue([win]);
 
         controller.tilingRequest(win);
-        expect(controller._windowWrappers.get(win).monitorIndex).toBe(1);
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
+        expect(controller.getWrapper(win).monitorIndex).toBe(1);
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-1');
 
         // Mock index shift: monitor-1 becomes index 0, monitor-0 becomes index 1
         const manager = Meta.Backend.get_monitor_manager();
@@ -354,8 +354,8 @@ describe('TilingController', () => {
         // It's just an index shift. handleMonitorsChanged will trigger hydration.
         controller.monitorManager.handleMonitorsChanged();
 
-        expect(controller._windowWrappers.get(win).monitorIndex).toBe(0);
-        expect(controller._windowWrappers.get(win).monitorId).toBe('monitor-1');
+        expect(controller.getWrapper(win).monitorIndex).toBe(0);
+        expect(controller.getWrapper(win).monitorId).toBe('monitor-1');
         expect(win.minimize).not.toHaveBeenCalled();
     });
 
@@ -471,19 +471,19 @@ describe('TilingController', () => {
 
             const layout = controller.workspaceManager.getLayout(ws);
             vi.spyOn(layout, 'moveWindowDirection').mockReturnValue(true);
-            vi.spyOn(controller, '_scheduleRetile');
+            vi.spyOn(controller, 'scheduleRetile');
 
             controller.moveWindowDirection(win, 'left');
 
             expect(layout.moveWindowDirection).toHaveBeenCalledWith(expect.objectContaining({ window: win }), 'left');
-            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
+            expect(controller.scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
         });
 
         it('should do nothing if window is untracked', () => {
             const win = createMockWindow(1, null, 0);
-            vi.spyOn(controller, '_scheduleRetile');
+            vi.spyOn(controller, 'scheduleRetile');
             controller.moveWindowDirection(win, 'left');
-            expect(controller._scheduleRetile).not.toHaveBeenCalled();
+            expect(controller.scheduleRetile).not.toHaveBeenCalled();
         });
     });
 
@@ -511,7 +511,7 @@ describe('TilingController', () => {
             vi.spyOn(indicator, 'destroy');
             const layout = controller.workspaceManager.getLayout(ws);
             vi.spyOn(layout, 'swapWindowByPointer').mockReturnValue(true);
-            vi.spyOn(controller, '_scheduleRetile');
+            vi.spyOn(controller, 'scheduleRetile');
 
             controller.dragManager.endDragTracking(win);
 
@@ -519,7 +519,7 @@ describe('TilingController', () => {
             expect(indicator.destroy).toHaveBeenCalled();
             expect(controller.dragManager._activeDrag).toBeNull();
             expect(layout.swapWindowByPointer).toHaveBeenCalledWith(expect.objectContaining({ window: win }), expect.any(Number), expect.any(Number), expect.any(Object), expect.any(Object));
-            expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
+            expect(controller.scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
         });
 
         it('should handle position-changed and update indicator', () => {

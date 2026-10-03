@@ -228,6 +228,7 @@ describe('WorkspaceManager', () => {
             retileAll: vi.fn(),
             hydrate: vi.fn(),
             _windowWrappers: new Map(),
+            getWrapper(w) { return this._windowWrappers.get(w); },
             
             escalator: LayoutParser.parse('{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}')
         };
@@ -414,7 +415,8 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             escalator: escalator,
             monitorManager: mockMonitorManager,
             _windowWrappers: new Map(),
-            _scheduleRetile: vi.fn(),
+            getWrapper(w) { return this._windowWrappers.get(w); },
+            scheduleRetile: vi.fn(),
             
         };
         const ws = { index: () => 0 };
@@ -442,7 +444,7 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
         expect(win0.monitorIndex).toBe(1);
         expect(win0.move_to_monitor).toHaveBeenCalledWith(1);
 
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-1', index: 1 }));
+        expect(controller.scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
+        expect(controller.scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-1', index: 1 }));
     });
 });
