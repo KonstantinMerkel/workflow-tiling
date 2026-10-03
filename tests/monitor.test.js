@@ -28,6 +28,7 @@ describe('MonitorManager', () => {
                 getLayout: vi.fn()
             },
             _windowWrappers: new Map(),
+            getWrapper(w) { return this._windowWrappers.get(w); },
             updateWindowWrapperMonitor: vi.fn(),
             tilingRequest: vi.fn()
         };
@@ -116,7 +117,7 @@ describe('MonitorManager', () => {
         expect(mockWin.move_to_monitor).toHaveBeenCalledWith(1);
         expect(mockWin.unminimize).toHaveBeenCalled();
         expect(wrapper.updateMonitor).toHaveBeenCalledWith(expect.objectContaining({ id: 'monitor-1', index: 1 }));
-        expect(monitorManager._restoringWindows.get(mockWin)).toBe(2);
+        expect(monitorManager.getRestoringSlot(mockWin)).toBe(2);
         expect(monitorManager.isEvacuated(mockWin)).toBe(false);
         expect(controller.hydrate).toHaveBeenCalled();
         expect(monitorManager._lastMonitorCount).toBe(2);

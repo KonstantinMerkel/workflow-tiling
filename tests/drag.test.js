@@ -160,7 +160,7 @@ describe('DragManager Cross-Monitor', () => {
         global.get_pointer = vi.fn(() => [1200, 500]);
         posChangedCb();
 
-        vi.spyOn(controller, '_scheduleRetile');
+        vi.spyOn(controller, 'scheduleRetile');
 
         dragManager.endDragTracking(win1);
 
@@ -181,8 +181,8 @@ describe('DragManager Cross-Monitor', () => {
         expect(wrapper.monitorIndex).toBe(1);
 
         // Verify schedule retiles called on both
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
-        expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-1', index: 1 }));
+        expect(controller.scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
+        expect(controller.scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-1', index: 1 }));
     });
 
     it('should handle empty monitor target drop', () => {
