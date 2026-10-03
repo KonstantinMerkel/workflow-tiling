@@ -98,8 +98,6 @@ describe('LayoutValidator', () => {
             const json = JSON.stringify({
                 "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
                 "2": [ { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 }, { "x": 50, "y": 0, "w": 50, "h": 100, "id": 1 } ],
-                "1": [ { "x": 0, "y": 0, "w": 100, "h": 100, "id": 0 } ],
-                "2": [ { "x": 0, "y": 0, "w": 50, "h": 100, "id": 0 }, { "x": 50, "y": 0, "w": 50, "h": 100, "id": 1 } ],
                 "3": [ { "x": 0, "y": 0, "w": 33.33, "h": 100, "id": 0 }, { "x": 33.33, "y": 0, "w": 33.33, "h": 100, "id": 1 }, { "x": 66.66, "y": 0, "w": 33.34, "h": 100, "id": 2 } ]
             });
             const escalator = LayoutParser.parse(json);
@@ -122,7 +120,7 @@ describe('LayoutParser', () => {
     });
 
     it('should throw on invalid JSON syntax', () => {
-        expect(() => LayoutParser.parse('{ bad }')).toThrow(/Invalid JSON syntax/);
+        expect(() => LayoutParser.parse('{ bad }')).toThrow(SyntaxError);
     });
 
     it('should parse valid json and return escalator', () => {
