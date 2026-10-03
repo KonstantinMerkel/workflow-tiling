@@ -37,7 +37,7 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
                 mockListeners[`changed::${key}`].forEach(cb => cb());
             }
         },
-        bind: (key, object, property, flags) => {
+        bind: (key, object, property) => {
             Object.defineProperty(object, property, {
                 get: () => mockSettingsStore[key],
                 set: (val) => {
@@ -203,13 +203,13 @@ vi.mock('gi://Gtk', () => ({
             constructor(params) {
                 Object.assign(this, params);
             }
-            add_css_class(cls) {}
+            add_css_class() {}
         },
         Image: class {
             constructor(params) {
                 Object.assign(this, params);
             }
-            add_css_class(cls) {}
+            add_css_class() {}
         },
         Box: class {
             constructor(params) {
@@ -518,13 +518,11 @@ describe('WorkflowTilingPreferences', () => {
     describe('Mode Switching and Visibility Stress Tests', () => {
         let shortcutsPage;
         let swapGroup;
-        let testRow;
 
         beforeEach(() => {
             prefs.fillPreferencesWindow(mockWindow);
             shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
             swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Focus & Position');
-            testRow = swapGroup.rows.find(r => r.keyName === 'custom-move-window-left');
         });
 
         it('should update keybinding row visibilities when mode changes', () => {

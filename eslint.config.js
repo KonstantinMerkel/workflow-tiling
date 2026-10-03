@@ -31,8 +31,8 @@ export default [
                 "error",
                 { 
                     "vars": "all",
-                    "args": "none",
-                    "caughtErrors": "none"
+                    "args": "after-used",
+                    "caughtErrors": "all"
                 }
             ],
             // Downgrade other recommended rules to warning so we can list them

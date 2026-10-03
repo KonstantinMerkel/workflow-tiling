@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ScreenEstate, Layout } from '../lib/layout.js';
 import { LayoutParser } from '../lib/utils/layout-parser.js';
-import { LayoutValidator } from '../lib/utils/layout-validators.js';
 
 describe('ScreenEstate', () => {
     it('should calculate absolute coordinates with gaps', () => {

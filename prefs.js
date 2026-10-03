@@ -36,7 +36,7 @@ const ShortcutRowMixin = {
             if (surface && typeof surface.restore_system_shortcuts === 'function') {
                 try {
                     surface.restore_system_shortcuts();
-                } catch (e) {}
+                } catch {}
             }
             surface = null;
         };
@@ -459,7 +459,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
 
                 proc.communicate_utf8_async(null, null, (source, result) => {
                     try {
-                        const [ok, stdout, stderr] = source.communicate_utf8_finish(result);
+                        const [, stdout] = source.communicate_utf8_finish(result);
 
                         if (!stdout || stdout.trim() === '' || stdout.trim() === '-- No entries --') {
                             this._showDialog(parentWindow, 'No Logs Found',

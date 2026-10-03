@@ -51,7 +51,7 @@ vi.mock('gi://Gio', () => ({
         },
         SettingsSchemaSource: {
             get_default: vi.fn(() => ({
-                lookup: vi.fn((id, recursive) => null)
+                lookup: vi.fn(() => null)
             }))
         }
     }

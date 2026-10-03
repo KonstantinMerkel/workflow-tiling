@@ -27,7 +27,7 @@ describe('ShadowManager', () => {
         mockNativeSettings = {
             schema_id: 'org.gnome.desktop.wm.keybindings',
             list_keys: vi.fn(() => Object.keys(nativeStore)),
-            get_value: vi.fn((key) => ({
+            get_value: vi.fn(() => ({
                 get_type_string: () => 'as'
             })),
             get_strv: vi.fn((key) => nativeStore[key] || []),

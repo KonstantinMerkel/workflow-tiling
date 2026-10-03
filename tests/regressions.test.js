@@ -208,7 +208,7 @@ describe('Regressions', () => {
             expect(dragInfo.lastHoveredSlot).toBe(0);
             expect(dragInfo.lastHoveredMonitorId).toBe('monitor-1');
 
-            const retileSpy = vi.spyOn(controller, 'scheduleRetile').mockImplementation(() => {});
+            vi.spyOn(controller, 'scheduleRetile').mockImplementation(() => {});
             controller.dragManager.endDragTracking(winB);
 
             expect(targetTracker.getSlot(winB)).toBe(0);
