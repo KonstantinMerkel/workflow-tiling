@@ -48,17 +48,7 @@ export default [
             "no-unsafe-negation": "error",
             "no-dupe-keys": "error",
             "preserve-caught-error": "warn",
-            "max-len": [
-                "warn",
-                {
-                    "code": 120,
-                    "ignorePattern": "Logger\\.",
-                    "ignoreStrings": true,
-                    "ignoreTemplateLiterals": true,
-                    "ignoreRegExpLiterals": true,
-                    "ignoreComments": true
-                }
-            ]
+            "max-len": ["warn", { "code": 120 }]
         }
     },
     {
