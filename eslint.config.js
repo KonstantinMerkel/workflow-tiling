@@ -38,7 +38,7 @@ export default [
             // Downgrade other recommended rules to warning so we can list them
             // without failing the lint completely (except for unused vars)
             "no-undef": "warn",
-            "no-empty": "warn",
+            "no-empty": "error",
             "no-constant-condition": "warn",
             "no-prototype-builtins": "warn",
             "no-useless-escape": "warn",

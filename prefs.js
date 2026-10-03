@@ -36,7 +36,9 @@ const ShortcutRowMixin = {
             if (surface && typeof surface.restore_system_shortcuts === 'function') {
                 try {
                     surface.restore_system_shortcuts();
-                } catch {}
+                } catch {
+                    // Surface might already be destroyed or shortcuts already restored
+                }
             }
             surface = null;
         };
