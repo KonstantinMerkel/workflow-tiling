@@ -10,11 +10,11 @@ describe('WorkspaceLayout', () => {
 
     it('should track windows in sequence with gaps', () => {
         const layout = new WorkspaceLayout({}, controller);
-        const win1 = { id: 1 };
-        const win2 = { id: 2 };
+        const win1 = { id: 1, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
+        const win2 = { id: 2, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
 
-        layout.trackWindow(win1, 'monitor-0');
-        layout.trackWindow(win2, 'monitor-0');
+        win1.monitorId = 'monitor-0'; layout.trackWindow(win1);
+        win2.monitorId = 'monitor-0'; layout.trackWindow(win2);
 
         const ops = layout.getRetileOperations('monitor-0', monitorRect);
         expect(ops.length).toBe(2);
@@ -27,8 +27,8 @@ describe('WorkspaceLayout', () => {
         const rectM0 = { x: 0, y: 0, width: 1920, height: 1080 };
         const rectM1 = { x: 1920, y: 0, width: 1920, height: 1080 }; 
 
-        layout.trackWindow({ id: 'w1M0' }, 'monitor-0');
-        layout.trackWindow({ id: 'w1M1' }, 'monitor-1');
+        layout.trackWindow({ id: 'w1M0' , monitorId: 'monitor-0' });
+        layout.trackWindow({ id: 'w1M1' , monitorId: 'monitor-1' });
 
         const opsM0 = layout.getRetileOperations('monitor-0', rectM0);
         const opsM1 = layout.getRetileOperations('monitor-1', rectM1);
@@ -44,8 +44,8 @@ describe('WorkspaceLayout', () => {
         const rect4K = { x: 0, y: 0, width: 3840, height: 2160 };
         const rectHD = { x: 3840, y: 0, width: 1920, height: 1080 };
 
-        layout.trackWindow({ id: '4k' }, 'monitor-0');
-        layout.trackWindow({ id: 'hd' }, 'monitor-1');
+        layout.trackWindow({ id: '4k' , monitorId: 'monitor-0' });
+        layout.trackWindow({ id: 'hd' , monitorId: 'monitor-1' });
 
         const ops4K = layout.getRetileOperations('monitor-0', rect4K);
         const opsHD = layout.getRetileOperations('monitor-1', rectHD);
@@ -58,15 +58,15 @@ describe('WorkspaceLayout', () => {
 
     it('should provide retile operations when a window is removed', () => {
         const layout = new WorkspaceLayout({}, controller);
-        const w1 = { id: 1 };
-        const w2 = { id: 2 };
-        const w3 = { id: 3 };
+        const w1 = { id: 1, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
+        const w2 = { id: 2, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
+        const w3 = { id: 3, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
 
-        layout.trackWindow(w1, 'monitor-0');
-        layout.trackWindow(w2, 'monitor-0');
-        layout.trackWindow(w3, 'monitor-0');
+        w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+        w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
+        w3.monitorId = 'monitor-0'; layout.trackWindow(w3);
 
-        layout.untrackWindow(w1, 'monitor-0');
+        w1.monitorId = 'monitor-0'; layout.untrackWindow(w1);
 
         const ops = layout.getRetileOperations('monitor-0', monitorRect);
         expect(ops.length).toBe(2);
@@ -75,9 +75,9 @@ describe('WorkspaceLayout', () => {
 
     it('should maintain independent window counts across monitors', () => {
         const layout = new WorkspaceLayout({}, controller);
-        layout.trackWindow({ id: 1 }, 'monitor-0');
-        layout.trackWindow({ id: 2 }, 'monitor-1');
-        layout.trackWindow({ id: 3 }, 'monitor-1');
+        layout.trackWindow({ id: 1 , monitorId: 'monitor-0' });
+        layout.trackWindow({ id: 2 , monitorId: 'monitor-1' });
+        layout.trackWindow({ id: 3 , monitorId: 'monitor-1' });
 
         expect(layout.getRetileOperations('monitor-0', monitorRect).length).toBe(1);
         expect(layout.getRetileOperations('monitor-1', monitorRect).length).toBe(2);
@@ -86,13 +86,13 @@ describe('WorkspaceLayout', () => {
     describe('moveWindowDirection', () => {
         it('should correctly swap windows left/right with 2 windows', () => {
             const layout = new WorkspaceLayout({}, controller);
-            const w1 = { id: 1 };
-            const w2 = { id: 2 };
-            layout.trackWindow(w1, 'monitor-0');
-            layout.trackWindow(w2, 'monitor-0');
+            const w1 = { id: 1, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
+            const w2 = { id: 2, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
+            w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+            w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
 
             // initially w1 is slot 0, w2 is slot 1
-            const moved = layout.moveWindowDirection('monitor-0', w1, 'right');
+            const moved = layout.moveWindowDirection(w1, 'right');
             expect(moved).toBe(true);
 
             const tracker = layout._getTracker('monitor-0');
@@ -105,16 +105,16 @@ describe('WorkspaceLayout', () => {
 
         it('should correctly prioritize older windows when moving left/right in 3-window layout', () => {
             const layout = new WorkspaceLayout({}, controller);
-            const w1 = { id: 1 }; // left
-            const w2 = { id: 2 }; // top right
-            const w3 = { id: 3 }; // bottom right
+            const w1 = { id: 1, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // left
+            const w2 = { id: 2, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // top right
+            const w3 = { id: 3, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // bottom right
 
-            layout.trackWindow(w1, 'monitor-0');
-            layout.trackWindow(w2, 'monitor-0');
-            layout.trackWindow(w3, 'monitor-0');
+            w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+            w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
+            w3.monitorId = 'monitor-0'; layout.trackWindow(w3);
 
             // moving right from w1 (slot 0) should target w2 (slot 1), not w3
-            layout.moveWindowDirection('monitor-0', w1, 'right');
+            layout.moveWindowDirection(w1, 'right');
 
             const tracker = layout._getTracker('monitor-0');
             expect(tracker.getSlot(w1)).toBe(1); // w1 moved to top right
@@ -124,16 +124,16 @@ describe('WorkspaceLayout', () => {
 
         it('should swap up/down in 3-window layout', () => {
             const layout = new WorkspaceLayout({}, controller);
-            const w1 = { id: 1 }; // left
-            const w2 = { id: 2 }; // top right
-            const w3 = { id: 3 }; // bottom right
+            const w1 = { id: 1, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // left
+            const w2 = { id: 2, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // top right
+            const w3 = { id: 3, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // bottom right
 
-            layout.trackWindow(w1, 'monitor-0');
-            layout.trackWindow(w2, 'monitor-0');
-            layout.trackWindow(w3, 'monitor-0');
+            w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+            w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
+            w3.monitorId = 'monitor-0'; layout.trackWindow(w3);
 
             // moving down from w2 (slot 1) should target w3 (slot 2)
-            layout.moveWindowDirection('monitor-0', w2, 'down');
+            layout.moveWindowDirection(w2, 'down');
 
             const tracker = layout._getTracker('monitor-0');
             expect(tracker.getSlot(w2)).toBe(2); // w2 moved to bottom right
@@ -142,13 +142,13 @@ describe('WorkspaceLayout', () => {
 
         it('should not move if no window in that direction', () => {
             const layout = new WorkspaceLayout({}, controller);
-            const w1 = { id: 1 }; // left
-            const w2 = { id: 2 }; // right
+            const w1 = { id: 1, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // left
+            const w2 = { id: 2, updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } }; // right
 
-            layout.trackWindow(w1, 'monitor-0');
-            layout.trackWindow(w2, 'monitor-0');
+            w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+            w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
 
-            const moved = layout.moveWindowDirection('monitor-0', w1, 'left');
+            const moved = layout.moveWindowDirection(w1, 'left');
             expect(moved).toBe(false);
 
             const tracker = layout._getTracker('monitor-0');
@@ -165,11 +165,11 @@ describe('WorkspaceLayout', () => {
             const w1 = { id: 1, get_frame_rect: () => ({ x: 700, y: 100, width: 100, height: 100 }) }; // dropped center at (750, 150), which is in the right half
             const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
 
-            layout.trackWindow(w1, 'monitor-0');
-            layout.trackWindow(w2, 'monitor-0');
+            w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+            w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
 
             // pointer at (750, 150) in w2's estate
-            const swapped = layout.swapWindowByPointer('monitor-0', w1, 750, 150, mockRect, gaps);
+            const swapped = layout.swapWindowByPointer(w1, 750, 150, mockRect, gaps);
             expect(swapped).toBe(true);
 
             const tracker = layout._getTracker('monitor-0');
@@ -183,11 +183,11 @@ describe('WorkspaceLayout', () => {
             const w1 = { id: 1, get_frame_rect: () => ({ x: 2000, y: 2000, width: 100, height: 100 }) };
             const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
 
-            layout.trackWindow(w1, 'monitor-0');
-            layout.trackWindow(w2, 'monitor-0');
+            w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+            w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
 
             // pointer at 2050, 2050
-            const swapped = layout.swapWindowByPointer('monitor-0', w1, 2050, 2050, mockRect, gaps);
+            const swapped = layout.swapWindowByPointer(w1, 2050, 2050, mockRect, gaps);
             expect(swapped).toBe(false);
 
             const tracker = layout._getTracker('monitor-0');
@@ -201,11 +201,11 @@ describe('WorkspaceLayout', () => {
             const w1 = { id: 1, get_frame_rect: () => ({ x: 100, y: 100, width: 100, height: 100 }) };
             const w2 = { id: 2, get_frame_rect: () => ({ x: 500, y: 0, width: 500, height: 1000 }) };
 
-            layout.trackWindow(w1, 'monitor-0');
-            layout.trackWindow(w2, 'monitor-0');
+            w1.monitorId = 'monitor-0'; layout.trackWindow(w1);
+            w2.monitorId = 'monitor-0'; layout.trackWindow(w2);
 
             // pointer at 150, 150
-            const swapped = layout.swapWindowByPointer('monitor-0', w1, 150, 150, mockRect, gaps);
+            const swapped = layout.swapWindowByPointer(w1, 150, 150, mockRect, gaps);
             expect(swapped).toBe(false);
         });
     });
@@ -228,10 +228,7 @@ describe('WorkspaceManager', () => {
             retileAll: vi.fn(),
             hydrate: vi.fn(),
             _windowWrappers: new Map(),
-            updateWindowWrapperMonitor: function(win, id, idx) {
-                const w = this._windowWrappers.get(win);
-                if (w) { w.monitorId = id; w.monitorIndex = idx; }
-            },
+            
             escalator: LayoutParser.parse('{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}')
         };
         manager = new WorkspaceManager(controller);
@@ -340,7 +337,7 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             const layout = new WorkspaceLayout({}, controller);
             const targetTracker = {
                 size: 2,
-                windows: [
+                wrappers: [
                     { get_frame_rect: () => ({ x: 1000, y: 0, width: 500, height: 150 }) },
                     { get_frame_rect: () => ({ x: 1000, y: 150, width: 500, height: 850 }) }
                 ]
@@ -348,32 +345,32 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             const sourceRect = { x: 0, y: 100, width: 1000, height: 400 };
             
             const best = layout._findClosestBoundaryWindow(targetTracker, 'right', sourceRect);
-            expect(best).toBe(targetTracker.windows[1]);
+            expect(best).toBe(targetTracker.wrappers[1]);
         });
 
         it('should resolve ties using top-most/right-most tie breakers', () => {
             const layout = new WorkspaceLayout({}, controller);
             const targetTrackerY = {
                 size: 2,
-                windows: [
+                wrappers: [
                     { get_frame_rect: () => ({ x: 1000, y: 200, width: 500, height: 300 }) },
                     { get_frame_rect: () => ({ x: 1000, y: 100, width: 500, height: 300 }) }
                 ]
             };
             const sourceRectY = { x: 0, y: 200, width: 1000, height: 200 };
             const bestY = layout._findClosestBoundaryWindow(targetTrackerY, 'right', sourceRectY);
-            expect(bestY).toBe(targetTrackerY.windows[1]);
+            expect(bestY).toBe(targetTrackerY.wrappers[1]);
 
             const targetTrackerX = {
                 size: 2,
-                windows: [
+                wrappers: [
                     { get_frame_rect: () => ({ x: 100, y: 1000, width: 300, height: 500 }) },
                     { get_frame_rect: () => ({ x: 200, y: 1000, width: 300, height: 500 }) }
                 ]
             };
             const sourceRectX = { x: 200, y: 0, width: 200, height: 1000 };
             const bestX = layout._findClosestBoundaryWindow(targetTrackerX, 'down', sourceRectX);
-            expect(bestX).toBe(targetTrackerX.windows[1]);
+            expect(bestX).toBe(targetTrackerX.wrappers[1]);
         });
     });
 
@@ -389,7 +386,7 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
         };
         const layout = new WorkspaceLayout({}, controller);
 
-        const win0 = {
+        const win0 = { updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; },
             get_monitor: () => 0,
             get_frame_rect: () => ({ x: 0, y: 0, width: 1000, height: 1000 })
         };
@@ -399,10 +396,10 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             activate: vi.fn()
         };
 
-        layout.trackWindow(win0, 'monitor-0');
-        layout.trackWindow(win1, 'monitor-1');
+        win0.monitorId = 'monitor-0'; layout.trackWindow(win0);
+        win1.monitorId = 'monitor-1'; layout.trackWindow(win1);
 
-        const result = layout.focusWindowDirection('monitor-0', win0, 'right');
+        const result = layout.focusWindowDirection(win0, 'right');
         expect(result).toBe(true);
         expect(win1.activate).toHaveBeenCalled();
     });
@@ -418,25 +415,22 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             monitorManager: mockMonitorManager,
             _windowWrappers: new Map(),
             _scheduleRetile: vi.fn(),
-            updateWindowWrapperMonitor: function(win, monitor) {
-                const w = this._windowWrappers.get(win);
-                if (w) { w.monitorId = monitor.id; w.monitorIndex = monitor.index; }
-            }
+            
         };
         const ws = { index: () => 0 };
         const layout = new WorkspaceLayout(ws, controller);
 
-        const win0 = {
+        const win0 = { updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; },
             get_monitor: () => 0,
             get_frame_rect: () => ({ x: 0, y: 0, width: 1000, height: 1000 }),
             move_to_monitor: vi.fn()
         };
-        const wrapper0 = { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() };
+        const wrapper0 = { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } };
         controller._windowWrappers.set(win0, wrapper0);
 
-        layout.trackWindow(win0, 'monitor-0');
+        win0.monitorId = 'monitor-0'; layout.trackWindow(win0);
 
-        const result = layout.moveWindowDirection('monitor-0', win0, 'right');
+        const result = layout.moveWindowDirection(win0, 'right');
         expect(result).toBe(true);
         
         const tracker0 = layout._getTracker('monitor-0');
@@ -444,8 +438,8 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
         expect(tracker0.getSlot(win0)).toBeUndefined();
         expect(tracker1.getSlot(win0)).toBe(0);
 
-        expect(wrapper0.monitorId).toBe('monitor-1');
-        expect(wrapper0.monitorIndex).toBe(1);
+        expect(win0.monitorId).toBe('monitor-1');
+        expect(win0.monitorIndex).toBe(1);
         expect(win0.move_to_monitor).toHaveBeenCalledWith(1);
 
         expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));

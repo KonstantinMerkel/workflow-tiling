@@ -127,17 +127,17 @@ describe('TilingController', () => {
         const layout = controller.workspaceManager.getLayout(ws);
         const tracker = layout.monitors.get('monitor-0');
         
-        expect(tracker.windows).toEqual([winA, winB]);
+        expect(tracker.wrappers.map(w => w.window)).toEqual([winA, winB]);
 
         // Minimize A -> [B]
         winA.minimized = true;
         controller.tilingRequest(winA);
-        expect(tracker.windows).toEqual([winB]);
+        expect(tracker.wrappers.map(w => w.window)).toEqual([winB]);
 
         // Restore A -> [B, A] (A becomes the "new" window at the end)
         winA.minimized = false;
         controller.tilingRequest(winA);
-        expect(tracker.windows).toEqual([winB, winA]);
+        expect(tracker.wrappers.map(w => w.window)).toEqual([winB, winA]);
     });
 
     it('should NOT reverse order when tilingRequest is called multiple times', () => {
@@ -151,11 +151,11 @@ describe('TilingController', () => {
         const layout = controller.workspaceManager.getLayout(ws);
         const tracker = layout.monitors.get('monitor-0');
         
-        expect(tracker.windows).toEqual([winA, winB]);
+        expect(tracker.wrappers.map(w => w.window)).toEqual([winA, winB]);
 
         // A again (e.g. size-changed)
         controller.tilingRequest(winA);
-        expect(tracker.windows).toEqual([winA, winB]); // Should still be [A, B]
+        expect(tracker.wrappers.map(w => w.window)).toEqual([winA, winB]); // Should still be [A, B]
     });
 
     it('should handle monitor removal and minimize evacuated windows in tilingRequest', () => {
@@ -285,7 +285,7 @@ describe('TilingController', () => {
 
         // Window tracked in layout despite minimized=true (restoring bypass)
         const layout = controller.workspaceManager.getLayout(ws);
-        expect(layout.monitors.get('monitor-1').windows).toContain(win);
+        expect(layout.monitors.get('monitor-1').wrappers.map(w => w.window)).toContain(win);
     });
 
     it('should tile evacuated window when manually unminimized on remaining monitor', () => {
@@ -320,7 +320,7 @@ describe('TilingController', () => {
         // Evacuation flag should be cleared and window tracked on monitor-0
         expect(controller.monitorManager.isEvacuated(win)).toBe(false);
         const layout = controller.workspaceManager.getLayout(ws);
-        expect(layout.monitors.get('monitor-0').windows).toContain(win);
+        expect(layout.monitors.get('monitor-0').wrappers.map(w => w.window)).toContain(win);
     });
 
     it('should handle monitor index shifting via hydration sweep', () => {
@@ -475,7 +475,7 @@ describe('TilingController', () => {
 
             controller.moveWindowDirection(win, 'left');
 
-            expect(layout.moveWindowDirection).toHaveBeenCalledWith('monitor-0', win, 'left');
+            expect(layout.moveWindowDirection).toHaveBeenCalledWith(expect.objectContaining({ window: win }), 'left');
             expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
         });
 
@@ -518,7 +518,7 @@ describe('TilingController', () => {
             expect(win.disconnect).toHaveBeenCalledWith(123);
             expect(indicator.destroy).toHaveBeenCalled();
             expect(controller.dragManager._activeDrag).toBeNull();
-            expect(layout.swapWindowByPointer).toHaveBeenCalledWith('monitor-0', win, expect.any(Number), expect.any(Number), expect.any(Object), expect.any(Object));
+            expect(layout.swapWindowByPointer).toHaveBeenCalledWith(expect.objectContaining({ window: win }), expect.any(Number), expect.any(Number), expect.any(Object), expect.any(Object));
             expect(controller._scheduleRetile).toHaveBeenCalledWith(ws, expect.objectContaining({ id: 'monitor-0', index: 0 }));
         });
 

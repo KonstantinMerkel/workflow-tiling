@@ -75,7 +75,7 @@ describe('Monitor Transitions', () => {
 
     const createMockWindow = (id, workspace, initialMonitorIndex) => {
         let monitor = initialMonitorIndex;
-        return {
+        return { updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; },
             id,
             get_workspace: () => workspace,
             get_monitor: vi.fn(() => monitor),
@@ -109,8 +109,8 @@ describe('Monitor Transitions', () => {
             settings: mockSettings,
             _windowWrappers: new Map(),
             _scheduleRetile: vi.fn(),
-            updateWindowWrapperMonitor: function(win, monitor) {
-                const w = this._windowWrappers.get(win);
+            updateWindowWrapperMonitor: function(wrapper, monitor) {
+                const w = wrapper;
                 if (w) { w.monitorId = monitor.id; w.monitorIndex = monitor.index; }
             }
         };
@@ -128,18 +128,18 @@ describe('Monitor Transitions', () => {
             const winC = createMockWindow('C', ws, 1);
             const winD = createMockWindow('D', ws, 1);
 
-            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
-            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
-            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
-            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
+            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
+            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
+            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
 
-            layout.trackWindow(winA, 'monitor-0');
-            layout.trackWindow(winB, 'monitor-0');
-            layout.trackWindow(winC, 'monitor-1');
-            layout.trackWindow(winD, 'monitor-1');
+            winA.monitorId = 'monitor-0'; layout.trackWindow(winA);
+            winB.monitorId = 'monitor-0'; layout.trackWindow(winB);
+            winC.monitorId = 'monitor-1'; layout.trackWindow(winC);
+            winD.monitorId = 'monitor-1'; layout.trackWindow(winD);
 
             // Move winB to right (cross-monitor movement DP-1 -> HDMI-1)
-            const result = layout.moveWindowDirection('monitor-0', winB, 'right');
+            const result = layout.moveWindowDirection(winB, 'right');
             expect(result).toBe(true);
 
             const tracker0 = layout._getTracker('monitor-0');
@@ -159,8 +159,8 @@ describe('Monitor Transitions', () => {
             expect(tracker1.getSlot(winD)).toBe(2);
 
             expect(winB.move_to_monitor).toHaveBeenCalledWith(1);
-            expect(controller._windowWrappers.get(winB).monitorId).toBe('monitor-1');
-            expect(controller._windowWrappers.get(winB).monitorIndex).toBe(1);
+            expect(winB.monitorId).toBe('monitor-1');
+            expect(winB.monitorIndex).toBe(1);
         });
     });
 
@@ -176,18 +176,18 @@ describe('Monitor Transitions', () => {
             const winC = createMockWindow('C', ws, 1);
             const winD = createMockWindow('D', ws, 1);
 
-            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
-            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
-            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
-            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
+            controller._windowWrappers.set(winB, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
+            controller._windowWrappers.set(winC, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
+            controller._windowWrappers.set(winD, { monitorId: 'monitor-1', monitorIndex: 1, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
 
-            layout.trackWindow(winA, 'monitor-0');
-            layout.trackWindow(winB, 'monitor-0'); // slot 1
-            layout.trackWindow(winC, 'monitor-1'); // slot 0
-            layout.trackWindow(winD, 'monitor-1'); // slot 1
+            winA.monitorId = 'monitor-0'; layout.trackWindow(winA);
+            winB.monitorId = 'monitor-0'; layout.trackWindow(winB); // slot 1
+            winC.monitorId = 'monitor-1'; layout.trackWindow(winC); // slot 0
+            winD.monitorId = 'monitor-1'; layout.trackWindow(winD); // slot 1
 
             // Move winB to right
-            const result = layout.moveWindowDirection('monitor-0', winB, 'right');
+            const result = layout.moveWindowDirection(winB, 'right');
             expect(result).toBe(true);
 
             const tracker0 = layout._getTracker('monitor-0');
@@ -213,10 +213,10 @@ describe('Monitor Transitions', () => {
             expect(winC.move_to_monitor).toHaveBeenCalledWith(0);
 
             // Check wrapper updates
-            expect(controller._windowWrappers.get(winB).monitorId).toBe('monitor-1');
-            expect(controller._windowWrappers.get(winB).monitorIndex).toBe(1);
-            expect(controller._windowWrappers.get(winC).monitorId).toBe('monitor-0');
-            expect(controller._windowWrappers.get(winC).monitorIndex).toBe(0);
+            expect(winB.monitorId).toBe('monitor-1');
+            expect(winB.monitorIndex).toBe(1);
+            expect(winC.monitorId).toBe('monitor-0');
+            expect(winC.monitorIndex).toBe(0);
         });
 
         it('should fall back to moving window if target monitor has no windows', () => {
@@ -227,11 +227,11 @@ describe('Monitor Transitions', () => {
             // Source: 1 window. Target: 0 windows.
             const winA = createMockWindow('A', ws, 0);
 
-            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn() });
+            controller._windowWrappers.set(winA, { monitorId: 'monitor-0', monitorIndex: 0, beginMonitorTransit: vi.fn(), updateMonitor: function(m) { this.monitorId = m.id; this.monitorIndex = m.index; } });
 
-            layout.trackWindow(winA, 'monitor-0');
+            winA.monitorId = 'monitor-0'; layout.trackWindow(winA);
 
-            const result = layout.moveWindowDirection('monitor-0', winA, 'right');
+            const result = layout.moveWindowDirection(winA, 'right');
             expect(result).toBe(true);
 
             const tracker0 = layout._getTracker('monitor-0');
@@ -242,8 +242,8 @@ describe('Monitor Transitions', () => {
             expect(tracker1.getSlot(winA)).toBe(0);
 
             expect(winA.move_to_monitor).toHaveBeenCalledWith(1);
-            expect(controller._windowWrappers.get(winA).monitorId).toBe('monitor-1');
-            expect(controller._windowWrappers.get(winA).monitorIndex).toBe(1);
+            expect(winA.monitorId).toBe('monitor-1');
+            expect(winA.monitorIndex).toBe(1);
         });
     });
 });

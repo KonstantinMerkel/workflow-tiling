@@ -108,11 +108,14 @@ describe('MonitorManager', () => {
             { get_monitors: () => [{ get_stable_id: () => 'monitor-1', get_connector: () => 'HDMI-1' }] }
         ]);
 
+        const wrapper = { window: mockWin, updateMonitor: vi.fn() };
+        controller._windowWrappers.set(mockWin, wrapper);
+
         monitorManager.handleMonitorsChanged();
 
         expect(mockWin.move_to_monitor).toHaveBeenCalledWith(1);
         expect(mockWin.unminimize).toHaveBeenCalled();
-        expect(controller.updateWindowWrapperMonitor).toHaveBeenCalledWith(mockWin, expect.objectContaining({ id: 'monitor-1', index: 1 }));
+        expect(wrapper.updateMonitor).toHaveBeenCalledWith(expect.objectContaining({ id: 'monitor-1', index: 1 }));
         expect(monitorManager._restoringWindows.get(mockWin)).toBe(2);
         expect(monitorManager.isEvacuated(mockWin)).toBe(false);
         expect(controller.hydrate).toHaveBeenCalled();
