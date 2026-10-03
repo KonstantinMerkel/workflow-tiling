@@ -502,7 +502,9 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
                             (fileSource, fileResult) => {
                                 try {
                                     fileSource.replace_contents_finish(fileResult);
-                                    const msg = `Logs saved to ${filepath}.\n\nTo open a bug report on GitHub, please attach this file.`;
+                                    const msg =
+                                        `Logs saved to ${filepath}.\n\n` +
+                                        `To open a bug report on GitHub, please attach this file.`;
                                     this._showDialog(parentWindow, 'Bug Logs Saved', msg);
                                 } catch (e) {
                                     this._showDialog(
