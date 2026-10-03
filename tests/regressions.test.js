@@ -44,11 +44,11 @@ describe('Regressions', () => {
                 activate: vi.fn()
             };
 
-            layout.trackWindow(winSource, 'monitor-0');
-            layout.trackWindow(winClose, 'monitor-1');
-            layout.trackWindow(winFar, 'monitor-1');
+            winSource.monitorId = 'monitor-0'; layout.trackWindow(winSource);
+            winClose.monitorId = 'monitor-1'; layout.trackWindow(winClose);
+            winFar.monitorId = 'monitor-1'; layout.trackWindow(winFar);
 
-            const result = layout.focusWindowDirection('monitor-0', winSource, 'right');
+            const result = layout.focusWindowDirection(winSource, 'right');
             expect(result).toBe(true);
             expect(winClose.activate).toHaveBeenCalled();
             expect(winFar.activate).not.toHaveBeenCalled();
@@ -85,11 +85,11 @@ describe('Regressions', () => {
                 activate: vi.fn()
             };
 
-            layout.trackWindow(winSource, 'monitor-1');
-            layout.trackWindow(winClose, 'monitor-0');
-            layout.trackWindow(winFar, 'monitor-0');
+            winSource.monitorId = 'monitor-1'; layout.trackWindow(winSource);
+            winClose.monitorId = 'monitor-0'; layout.trackWindow(winClose);
+            winFar.monitorId = 'monitor-0'; layout.trackWindow(winFar);
 
-            const result = layout.focusWindowDirection('monitor-1', winSource, 'up');
+            const result = layout.focusWindowDirection(winSource, 'up');
             expect(result).toBe(true);
             expect(winClose.activate).toHaveBeenCalled();
             expect(winFar.activate).not.toHaveBeenCalled();
