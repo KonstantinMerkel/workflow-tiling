@@ -30,7 +30,7 @@ install: compile-schemas do_sync
 	@echo ""
 
 test:
-	npm test
+	npm test && npx eslint .
 
 pack: compile-schemas
 	zip -r extension.zip $(FILES)

@@ -35,21 +35,36 @@ export default [
                     "caughtErrors": "all"
                 }
             ],
-            // Downgrade other recommended rules to warning so we can list them
-            // without failing the lint completely (except for unused vars)
-            "no-undef": "warn",
+            "no-undef": "error",
             "no-empty": "error",
-            "no-constant-condition": "warn",
+            "no-constant-condition": "error",
             "no-prototype-builtins": "warn",
             "no-useless-escape": "warn",
             "no-cond-assign": "warn",
             "no-func-assign": "warn",
             "no-import-assign": "warn",
             "no-inner-declarations": "warn",
-            "no-unsafe-finally": "warn",
-            "no-unsafe-negation": "warn",
+            "no-unsafe-finally": "error",
+            "no-unsafe-negation": "error",
             "no-dupe-keys": "error",
-            "preserve-caught-error": "warn"
+            "preserve-caught-error": "warn",
+            "max-len": [
+                "warn",
+                {
+                    "code": 120,
+                    "ignorePattern": "Logger\\.",
+                    "ignoreStrings": true,
+                    "ignoreTemplateLiterals": true,
+                    "ignoreRegExpLiterals": true,
+                    "ignoreComments": true
+                }
+            ]
+        }
+    },
+    {
+        files: ["tests/**/*.js"],
+        rules: {
+            "max-len": "off"
         }
     }
 ];
