@@ -32,9 +32,8 @@ describe('WindowWrapper', () => {
     });
 
     it('should initialize correctly', () => {
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         expect(wrapper.window).toBe(mockWindow);
-        expect(wrapper.controller).toBe(mockController);
         expect(wrapper.unmanaged).toBe(false);
         expect(wrapper.minimized).toBe(false);
         expect(wrapper.title).toBe('Test Window');
@@ -42,12 +41,12 @@ describe('WindowWrapper', () => {
 
     it('should handle unmanaged fallback title', () => {
         mockWindow.get_title = undefined;
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         expect(wrapper.title).toBe('Unknown');
     });
 
     it('should bind signals only once', () => {
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.bindSignals();
         wrapper.bindSignals(); // should not connect again
         expect(mockWindow.connect).toHaveBeenCalledTimes(7);
@@ -60,7 +59,7 @@ describe('WindowWrapper', () => {
             return 99;
         });
 
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.bindSizeChanged();
         
         expect(mockWindow.connect).toHaveBeenCalledWith('size-changed', expect.any(Function));
@@ -77,7 +76,7 @@ describe('WindowWrapper', () => {
     });
 
     it('should destroy and disconnect all signals', () => {
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.bindSignals();
         wrapper.bindSizeChanged();
         
@@ -87,20 +86,20 @@ describe('WindowWrapper', () => {
 
     it('should apply geometry skipping unmanaged', () => {
         mockWindow.unmanaged = true;
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
         expect(mockWindow.move_resize_frame).not.toHaveBeenCalled();
     });
 
     it('should apply geometry', () => {
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.applyGeometry({ x: 10.4, y: 10.5, width: 100.1, height: 100.9 });
         expect(mockWindow.move_resize_frame).toHaveBeenCalledWith(false, 10, 11, 100, 101);
     });
 
     it('should unmaximize before applying geometry if maximized', () => {
         mockWindow.maximized_horizontally = true;
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
         
         expect(mockWindow.unmaximize).toHaveBeenCalled();
@@ -110,14 +109,14 @@ describe('WindowWrapper', () => {
 
     it('should catch error on disconnect fail', () => {
         mockWindow.handler_is_connected = vi.fn(() => { throw new Error('fail'); });
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.bindSignals();
         wrapper.destroy(); // should not throw
     });
 
     it('should catch error on apply geometry fail', () => {
         mockWindow.move_resize_frame = vi.fn(() => { throw new Error('fail'); });
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 }); // should not throw
     });
 
@@ -131,7 +130,7 @@ describe('WindowWrapper', () => {
         });
 
         it('should track and remove compositor laters on destroy', () => {
-            const wrapper = new WindowWrapper(mockWindow, mockController);
+            const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
             const mockLaters = { add: vi.fn(() => 42), remove: vi.fn() };
             global.compositor.get_laters = vi.fn(() => mockLaters);
 
@@ -145,7 +144,7 @@ describe('WindowWrapper', () => {
         });
 
         it('should catch errors when removing already-fired laters in destroy', () => {
-            const wrapper = new WindowWrapper(mockWindow, mockController);
+            const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
             const mockLaters = {
                 add: vi.fn(() => 42),
                 remove: vi.fn(() => { throw new Error('Already removed'); })
@@ -159,7 +158,7 @@ describe('WindowWrapper', () => {
 
     it('should correctly identify active override', () => {
         mockController.isOverrideActive = vi.fn(() => true);
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         expect(wrapper.isOverrideActive()).toBe(true);
 
         mockController.isOverrideActive = vi.fn(() => false);
@@ -168,7 +167,7 @@ describe('WindowWrapper', () => {
 
     it('should skip applyGeometry if override is active', () => {
         mockController.isOverrideActive = vi.fn(() => true);
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
         expect(mockWindow.move_resize_frame).not.toHaveBeenCalled();
     });
@@ -176,7 +175,7 @@ describe('WindowWrapper', () => {
     it('should unmake fullscreen before applying geometry if fullscreen', () => {
         mockWindow.is_fullscreen = vi.fn(() => true);
         mockWindow.unmake_fullscreen = vi.fn();
-        const wrapper = new WindowWrapper(mockWindow, mockController);
+        const wrapper = new WindowWrapper(mockWindow, { onTilingRequest: (w) => mockController.tilingRequest(w), onUntile: (w) => mockController.untile(w), isOverrideActive: (w) => mockController.isOverrideActive(w) });
         wrapper.applyGeometry({ x: 10, y: 10, width: 100, height: 100 });
         
         expect(mockWindow.unmake_fullscreen).toHaveBeenCalled();
