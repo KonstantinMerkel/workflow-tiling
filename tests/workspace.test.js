@@ -95,9 +95,9 @@ describe('WorkspaceLayout', () => {
             const moved = layout.moveWindowDirection(w1, 'right');
             expect(moved).toBe(true);
 
-            const tracker = layout._getTracker('monitor-0');
-            expect(tracker.getSlot(w1)).toBe(1);
-            expect(tracker.getSlot(w2)).toBe(0);
+            const monitorLayout = layout._getMonitorLayout('monitor-0');
+            expect(monitorLayout.getSlot(w1)).toBe(1);
+            expect(monitorLayout.getSlot(w2)).toBe(0);
 
             const ops = layout.getRetileOperations('monitor-0', monitorRect);
             expect(ops.find(o => o.window === w1).rect.x).toBeGreaterThan(0);
@@ -116,10 +116,10 @@ describe('WorkspaceLayout', () => {
             // moving right from w1 (slot 0) should target w2 (slot 1), not w3
             layout.moveWindowDirection(w1, 'right');
 
-            const tracker = layout._getTracker('monitor-0');
-            expect(tracker.getSlot(w1)).toBe(1); // w1 moved to top right
-            expect(tracker.getSlot(w2)).toBe(0); // w2 moved to left
-            expect(tracker.getSlot(w3)).toBe(2); // w3 stayed bottom right
+            const monitorLayout = layout._getMonitorLayout('monitor-0');
+            expect(monitorLayout.getSlot(w1)).toBe(1); // w1 moved to top right
+            expect(monitorLayout.getSlot(w2)).toBe(0); // w2 moved to left
+            expect(monitorLayout.getSlot(w3)).toBe(2); // w3 stayed bottom right
         });
 
         it('should swap up/down in 3-window layout', () => {
@@ -135,9 +135,9 @@ describe('WorkspaceLayout', () => {
             // moving down from w2 (slot 1) should target w3 (slot 2)
             layout.moveWindowDirection(w2, 'down');
 
-            const tracker = layout._getTracker('monitor-0');
-            expect(tracker.getSlot(w2)).toBe(2); // w2 moved to bottom right
-            expect(tracker.getSlot(w3)).toBe(1); // w3 moved to top right
+            const monitorLayout = layout._getMonitorLayout('monitor-0');
+            expect(monitorLayout.getSlot(w2)).toBe(2); // w2 moved to bottom right
+            expect(monitorLayout.getSlot(w3)).toBe(1); // w3 moved to top right
         });
 
         it('should not move if no window in that direction', () => {
@@ -151,8 +151,8 @@ describe('WorkspaceLayout', () => {
             const moved = layout.moveWindowDirection(w1, 'left');
             expect(moved).toBe(false);
 
-            const tracker = layout._getTracker('monitor-0');
-            expect(tracker.getSlot(w1)).toBe(0);
+            const monitorLayout = layout._getMonitorLayout('monitor-0');
+            expect(monitorLayout.getSlot(w1)).toBe(0);
         });
     });
 
@@ -172,9 +172,9 @@ describe('WorkspaceLayout', () => {
             const swapped = layout.swapWindowByPointer(w1, 750, 150, mockRect, gaps);
             expect(swapped).toBe(true);
 
-            const tracker = layout._getTracker('monitor-0');
-            expect(tracker.getSlot(w1)).toBe(1);
-            expect(tracker.getSlot(w2)).toBe(0);
+            const monitorLayout = layout._getMonitorLayout('monitor-0');
+            expect(monitorLayout.getSlot(w1)).toBe(1);
+            expect(monitorLayout.getSlot(w2)).toBe(0);
         });
 
         it('should not swap if dropped outside of any other window', () => {
@@ -190,9 +190,9 @@ describe('WorkspaceLayout', () => {
             const swapped = layout.swapWindowByPointer(w1, 2050, 2050, mockRect, gaps);
             expect(swapped).toBe(false);
 
-            const tracker = layout._getTracker('monitor-0');
-            expect(tracker.getSlot(w1)).toBe(0);
-            expect(tracker.getSlot(w2)).toBe(1);
+            const monitorLayout = layout._getMonitorLayout('monitor-0');
+            expect(monitorLayout.getSlot(w1)).toBe(0);
+            expect(monitorLayout.getSlot(w2)).toBe(1);
         });
 
         it('should not swap with itself if dropped in its own original area', () => {
@@ -336,7 +336,7 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
     describe('_findClosestBoundaryWindow', () => {
         it('should choose the window with highest overlap on adjacent edge', () => {
             const layout = new WorkspaceLayout({}, controller);
-            const targetTracker = {
+            const targetMonitorLayout = {
                 size: 2,
                 wrappers: [
                     { get_frame_rect: () => ({ x: 1000, y: 0, width: 500, height: 150 }) },
@@ -345,13 +345,13 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
             };
             const sourceRect = { x: 0, y: 100, width: 1000, height: 400 };
             
-            const best = layout._findClosestBoundaryWindow(targetTracker, 'right', sourceRect);
-            expect(best).toBe(targetTracker.wrappers[1]);
+            const best = layout._findClosestBoundaryWindow(targetMonitorLayout, 'right', sourceRect);
+            expect(best).toBe(targetMonitorLayout.wrappers[1]);
         });
 
         it('should resolve ties using top-most/right-most tie breakers', () => {
             const layout = new WorkspaceLayout({}, controller);
-            const targetTrackerY = {
+            const targetMonitorLayoutY = {
                 size: 2,
                 wrappers: [
                     { get_frame_rect: () => ({ x: 1000, y: 200, width: 500, height: 300 }) },
@@ -359,10 +359,10 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
                 ]
             };
             const sourceRectY = { x: 0, y: 200, width: 1000, height: 200 };
-            const bestY = layout._findClosestBoundaryWindow(targetTrackerY, 'right', sourceRectY);
-            expect(bestY).toBe(targetTrackerY.wrappers[1]);
+            const bestY = layout._findClosestBoundaryWindow(targetMonitorLayoutY, 'right', sourceRectY);
+            expect(bestY).toBe(targetMonitorLayoutY.wrappers[1]);
 
-            const targetTrackerX = {
+            const targetMonitorLayoutX = {
                 size: 2,
                 wrappers: [
                     { get_frame_rect: () => ({ x: 100, y: 1000, width: 300, height: 500 }) },
@@ -370,8 +370,8 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
                 ]
             };
             const sourceRectX = { x: 200, y: 0, width: 200, height: 1000 };
-            const bestX = layout._findClosestBoundaryWindow(targetTrackerX, 'down', sourceRectX);
-            expect(bestX).toBe(targetTrackerX.wrappers[1]);
+            const bestX = layout._findClosestBoundaryWindow(targetMonitorLayoutX, 'down', sourceRectX);
+            expect(bestX).toBe(targetMonitorLayoutX.wrappers[1]);
         });
     });
 
@@ -435,10 +435,10 @@ describe('WorkspaceLayout Cross-Monitor Fallback', () => {
         const result = layout.moveWindowDirection(win0, 'right');
         expect(result).toBe(true);
         
-        const tracker0 = layout._getTracker('monitor-0');
-        const tracker1 = layout._getTracker('monitor-1');
-        expect(tracker0.getSlot(win0)).toBeUndefined();
-        expect(tracker1.getSlot(win0)).toBe(0);
+        const monitorLayout0 = layout._getMonitorLayout('monitor-0');
+        const monitorLayout1 = layout._getMonitorLayout('monitor-1');
+        expect(monitorLayout0.getSlot(win0)).toBeUndefined();
+        expect(monitorLayout1.getSlot(win0)).toBe(0);
 
         expect(win0.monitorId).toBe('monitor-1');
         expect(win0.monitorIndex).toBe(1);

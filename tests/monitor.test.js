@@ -64,11 +64,11 @@ describe('MonitorManager', () => {
             { get_monitors: () => [{ get_stable_id: () => 'monitor-0', get_connector: () => 'DP-1' }] }
         ]);
 
-        const mockTracker = {
+        const mockMonitorLayout = {
             getSlot: vi.fn().mockReturnValue(2)
         };
         const mockGrid = {
-            _getTracker: vi.fn().mockReturnValue(mockTracker),
+            _getMonitorLayout: vi.fn().mockReturnValue(mockMonitorLayout),
             untrackWindow: vi.fn()
         };
         controller.workspaceManager.getLayout.mockReturnValue(mockGrid);
@@ -80,7 +80,7 @@ describe('MonitorManager', () => {
 
         expect(evacuated).toBe(true);
         expect(mockWin.minimize).toHaveBeenCalled();
-        expect(mockGrid._getTracker).toHaveBeenCalledWith('monitor-1');
+        expect(mockGrid._getMonitorLayout).toHaveBeenCalledWith('monitor-1');
         expect(mockGrid.untrackWindow).toHaveBeenCalledWith(mockWin, 'monitor-1');
         expect(monitorManager.isEvacuated(mockWin)).toBe(true);
     });
