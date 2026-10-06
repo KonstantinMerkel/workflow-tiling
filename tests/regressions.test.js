@@ -183,13 +183,13 @@ describe('Regressions', () => {
             controller.tilingRequest(winD);
 
             const layout = controller.workspaceManager.getLayout(ws);
-            const sourceTracker = layout._getTracker('monitor-0');
-            const targetTracker = layout._getTracker('monitor-1');
+            const sourceMonitorLayout = layout._getMonitorLayout('monitor-0');
+            const targetMonitorLayout = layout._getMonitorLayout('monitor-1');
 
-            expect(sourceTracker.getSlot(winA)).toBe(0);
-            expect(sourceTracker.getSlot(winB)).toBe(1);
-            expect(targetTracker.getSlot(winC)).toBe(0);
-            expect(targetTracker.getSlot(winD)).toBe(1);
+            expect(sourceMonitorLayout.getSlot(winA)).toBe(0);
+            expect(sourceMonitorLayout.getSlot(winB)).toBe(1);
+            expect(targetMonitorLayout.getSlot(winC)).toBe(0);
+            expect(targetMonitorLayout.getSlot(winD)).toBe(1);
 
             controller.dragManager.startDragTracking(winB);
 
@@ -211,10 +211,10 @@ describe('Regressions', () => {
             vi.spyOn(controller, 'scheduleRetile').mockImplementation(() => {});
             controller.dragManager.endDragTracking(winB);
 
-            expect(targetTracker.getSlot(winB)).toBe(0);
-            expect(targetTracker.getSlot(winD)).toBe(1);
-            expect(sourceTracker.getSlot(winC)).toBe(1);
-            expect(sourceTracker.getSlot(winA)).toBe(0);
+            expect(targetMonitorLayout.getSlot(winB)).toBe(0);
+            expect(targetMonitorLayout.getSlot(winD)).toBe(1);
+            expect(sourceMonitorLayout.getSlot(winC)).toBe(1);
+            expect(sourceMonitorLayout.getSlot(winA)).toBe(0);
         });
     });
 
@@ -309,20 +309,20 @@ describe('Regressions', () => {
             controller.tilingRequest(winD);
 
             const layout = controller.workspaceManager.getLayout(ws);
-            const sourceTracker = layout._getTracker('monitor-0');
-            const targetTracker = layout._getTracker('monitor-1');
+            const sourceMonitorLayout = layout._getMonitorLayout('monitor-0');
+            const targetMonitorLayout = layout._getMonitorLayout('monitor-1');
 
-            expect(sourceTracker.getSlot(winA)).toBe(0);
-            expect(sourceTracker.getSlot(winB)).toBe(1);
-            expect(targetTracker.getSlot(winC)).toBe(0);
-            expect(targetTracker.getSlot(winD)).toBe(1);
+            expect(sourceMonitorLayout.getSlot(winA)).toBe(0);
+            expect(sourceMonitorLayout.getSlot(winB)).toBe(1);
+            expect(targetMonitorLayout.getSlot(winC)).toBe(0);
+            expect(targetMonitorLayout.getSlot(winD)).toBe(1);
 
             controller.switchMonitors(0);
 
-            expect(sourceTracker.getSlot(winC)).toBe(0);
-            expect(sourceTracker.getSlot(winD)).toBe(1);
-            expect(targetTracker.getSlot(winA)).toBe(0);
-            expect(targetTracker.getSlot(winB)).toBe(1);
+            expect(sourceMonitorLayout.getSlot(winC)).toBe(0);
+            expect(sourceMonitorLayout.getSlot(winD)).toBe(1);
+            expect(targetMonitorLayout.getSlot(winA)).toBe(0);
+            expect(targetMonitorLayout.getSlot(winB)).toBe(1);
 
             expect(winA.get_monitor()).toBe(1);
             expect(winB.get_monitor()).toBe(1);

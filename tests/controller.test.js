@@ -125,19 +125,19 @@ describe('TilingController', () => {
         controller.tilingRequest(winA);
         controller.tilingRequest(winB);
         const layout = controller.workspaceManager.getLayout(ws);
-        const tracker = layout.monitors.get('monitor-0');
+        const monitorLayout = layout.monitors.get('monitor-0');
         
-        expect(tracker.wrappers.map(w => w.window)).toEqual([winA, winB]);
+        expect(monitorLayout.wrappers.map(w => w.window)).toEqual([winA, winB]);
 
         // Minimize A -> [B]
         winA.minimized = true;
         controller.tilingRequest(winA);
-        expect(tracker.wrappers.map(w => w.window)).toEqual([winB]);
+        expect(monitorLayout.wrappers.map(w => w.window)).toEqual([winB]);
 
         // Restore A -> [B, A] (A becomes the "new" window at the end)
         winA.minimized = false;
         controller.tilingRequest(winA);
-        expect(tracker.wrappers.map(w => w.window)).toEqual([winB, winA]);
+        expect(monitorLayout.wrappers.map(w => w.window)).toEqual([winB, winA]);
     });
 
     it('should NOT reverse order when tilingRequest is called multiple times', () => {
@@ -149,13 +149,13 @@ describe('TilingController', () => {
         controller.tilingRequest(winA);
         controller.tilingRequest(winB);
         const layout = controller.workspaceManager.getLayout(ws);
-        const tracker = layout.monitors.get('monitor-0');
+        const monitorLayout = layout.monitors.get('monitor-0');
         
-        expect(tracker.wrappers.map(w => w.window)).toEqual([winA, winB]);
+        expect(monitorLayout.wrappers.map(w => w.window)).toEqual([winA, winB]);
 
         // A again (e.g. size-changed)
         controller.tilingRequest(winA);
-        expect(tracker.wrappers.map(w => w.window)).toEqual([winA, winB]); // Should still be [A, B]
+        expect(monitorLayout.wrappers.map(w => w.window)).toEqual([winA, winB]); // Should still be [A, B]
     });
 
     it('should handle monitor removal and minimize evacuated windows in tilingRequest', () => {

@@ -169,11 +169,11 @@ describe('DragManager Cross-Monitor', () => {
 
         // Verify window tracked on target and untracked on source
         const layout = controller.workspaceManager.getLayout(ws);
-        const sourceTracker = layout._getTracker('monitor-0');
-        const targetTracker = layout._getTracker('monitor-1');
+        const sourceMonitorLayout = layout._getMonitorLayout('monitor-0');
+        const targetMonitorLayout = layout._getMonitorLayout('monitor-1');
 
-        expect(sourceTracker.getSlot(win1)).toBeUndefined();
-        expect(targetTracker.getSlot(win1)).toBe(0); // target slot preferred slot 0
+        expect(sourceMonitorLayout.getSlot(win1)).toBeUndefined();
+        expect(targetMonitorLayout.getSlot(win1)).toBe(0); // target slot preferred slot 0
 
         // Verify wrapper monitor details updated
         const wrapper = controller._windowWrappers.get(win1);
@@ -211,7 +211,7 @@ describe('DragManager Cross-Monitor', () => {
 
         // Verify window tracked on target monitor-1 slot 0
         const layout = controller.workspaceManager.getLayout(ws);
-        const targetTracker = layout._getTracker('monitor-1');
-        expect(targetTracker.getSlot(win1)).toBe(0);
+        const targetMonitorLayout = layout._getMonitorLayout('monitor-1');
+        expect(targetMonitorLayout.getSlot(win1)).toBe(0);
     });
 });

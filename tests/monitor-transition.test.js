@@ -140,21 +140,21 @@ describe('Monitor Transitions', () => {
             const result = layout.moveWindowDirection(winB, 'right');
             expect(result).toBe(true);
 
-            const tracker0 = layout._getTracker('monitor-0');
-            const tracker1 = layout._getTracker('monitor-1');
+            const monitorLayout0 = layout._getMonitorLayout('monitor-0');
+            const monitorLayout1 = layout._getMonitorLayout('monitor-1');
 
             // Source de-escalates: winB untracked, winA remains at slot 0
-            expect(tracker0.size).toBe(1);
-            expect(tracker0.getSlot(winA)).toBe(0);
-            expect(tracker0.getSlot(winB)).toBeUndefined();
+            expect(monitorLayout0.size).toBe(1);
+            expect(monitorLayout0.getSlot(winA)).toBe(0);
+            expect(monitorLayout0.getSlot(winB)).toBeUndefined();
 
             // Target escalates: new layout size is 3. Entering edge is 'left'.
             // size 3 'left' edging slot is 0.
             // winB should be at slot 0, winC pushed to 1, winD pushed to 2.
-            expect(tracker1.size).toBe(3);
-            expect(tracker1.getSlot(winB)).toBe(0);
-            expect(tracker1.getSlot(winC)).toBe(1);
-            expect(tracker1.getSlot(winD)).toBe(2);
+            expect(monitorLayout1.size).toBe(3);
+            expect(monitorLayout1.getSlot(winB)).toBe(0);
+            expect(monitorLayout1.getSlot(winC)).toBe(1);
+            expect(monitorLayout1.getSlot(winD)).toBe(2);
 
             expect(winB.move_to_monitor).toHaveBeenCalledWith(1);
             expect(winB.monitorId).toBe('monitor-1');
@@ -188,23 +188,23 @@ describe('Monitor Transitions', () => {
             const result = layout.moveWindowDirection(winB, 'right');
             expect(result).toBe(true);
 
-            const tracker0 = layout._getTracker('monitor-0');
-            const tracker1 = layout._getTracker('monitor-1');
+            const monitorLayout0 = layout._getMonitorLayout('monitor-0');
+            const monitorLayout1 = layout._getMonitorLayout('monitor-1');
 
             // No change in sizes
-            expect(tracker0.size).toBe(2);
-            expect(tracker1.size).toBe(2);
+            expect(monitorLayout0.size).toBe(2);
+            expect(monitorLayout1.size).toBe(2);
 
             // winB swaps with winC (edged window on target for entering edge 'left')
             // winB gets slot 0 on monitor 1
             // winC gets slot 1 on monitor 0 (winB's old slot)
-            expect(tracker0.getSlot(winA)).toBe(0);
-            expect(tracker0.getSlot(winC)).toBe(1);
-            expect(tracker0.getSlot(winB)).toBeUndefined();
+            expect(monitorLayout0.getSlot(winA)).toBe(0);
+            expect(monitorLayout0.getSlot(winC)).toBe(1);
+            expect(monitorLayout0.getSlot(winB)).toBeUndefined();
 
-            expect(tracker1.getSlot(winB)).toBe(0);
-            expect(tracker1.getSlot(winD)).toBe(1);
-            expect(tracker1.getSlot(winC)).toBeUndefined();
+            expect(monitorLayout1.getSlot(winB)).toBe(0);
+            expect(monitorLayout1.getSlot(winD)).toBe(1);
+            expect(monitorLayout1.getSlot(winC)).toBeUndefined();
 
             // Check physical movement
             expect(winB.move_to_monitor).toHaveBeenCalledWith(1);
@@ -232,12 +232,12 @@ describe('Monitor Transitions', () => {
             const result = layout.moveWindowDirection(winA, 'right');
             expect(result).toBe(true);
 
-            const tracker0 = layout._getTracker('monitor-0');
-            const tracker1 = layout._getTracker('monitor-1');
+            const monitorLayout0 = layout._getMonitorLayout('monitor-0');
+            const monitorLayout1 = layout._getMonitorLayout('monitor-1');
 
-            expect(tracker0.size).toBe(0);
-            expect(tracker1.size).toBe(1);
-            expect(tracker1.getSlot(winA)).toBe(0);
+            expect(monitorLayout0.size).toBe(0);
+            expect(monitorLayout1.size).toBe(1);
+            expect(monitorLayout1.getSlot(winA)).toBe(0);
 
             expect(winA.move_to_monitor).toHaveBeenCalledWith(1);
             expect(winA.monitorId).toBe('monitor-1');
