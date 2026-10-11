@@ -199,7 +199,7 @@ describe('Regressions', () => {
             expect(dragInfo).toBeDefined();
             
             controller.dragManager._handlePositionChanged(
-                controller._windowWrappers.get(winB),
+                controller.getWrapper(winB),
                 layout,
                 1,
                 dragInfo.indicator
