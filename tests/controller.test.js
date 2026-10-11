@@ -62,7 +62,7 @@ describe('TilingController', () => {
 
         controller.tilingRequest(win);
         // We verify it doesn't crash and caches the window.
-        expect(controller._windowWrappers.has(win)).toBe(true);
+        expect(controller.windowRegistry.has(win)).toBe(true);
     });
 
     it('should untile window when minimized', () => {
@@ -369,7 +369,7 @@ describe('TilingController', () => {
         
         controller.clear();
         
-        expect(controller._windowWrappers.size).toBe(0);
+        expect(controller.windowRegistry.size).toBe(0);
         expect(controller.workspaceManager.layouts.size).toBe(0);
         expect(controller._retileTimeouts.size).toBe(0);
         expect(controller.monitorManager._evacuatedWindows.size).toBe(0);
@@ -400,7 +400,7 @@ describe('TilingController', () => {
         
         // Should not throw
         expect(() => controller.untile(win)).not.toThrow();
-        expect(controller._windowWrappers.has(win)).toBe(false);
+        expect(controller.windowRegistry.has(win)).toBe(false);
     });
 
     it('should gracefully handle errors during monitor initialization', () => {

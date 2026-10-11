@@ -176,7 +176,7 @@ describe('DragManager Cross-Monitor', () => {
         expect(targetMonitorLayout.getSlot(win1)).toBe(0); // target slot preferred slot 0
 
         // Verify wrapper monitor details updated
-        const wrapper = controller._windowWrappers.get(win1);
+        const wrapper = controller.getWrapper(win1);
         expect(wrapper.monitorId).toBe('monitor-1');
         expect(wrapper.monitorIndex).toBe(1);
 
