@@ -1,6 +1,6 @@
 UUID = $(shell grep -oP '"uuid":\s*"\K[^"]+' metadata.json)
 EXT_DIR = ~/.local/share/gnome-shell/extensions/$(UUID)
-FILES = extension.js metadata.json lib/ schemas/ prefs.js
+FILES = extension.js metadata.json lib/ prefs/ schemas/ prefs.js
 
 .PHONY: all sync install uninstall test pack enable disable clean reminder do_sync do_enable compile-schemas
 

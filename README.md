@@ -12,7 +12,10 @@ An intuitive, user-first window manager aiming for better productivity on GNOME.
 We do not natively draw an active window border. For visual indication of the focused window, it is highly recommended to use an extension like [P7 Border](https://github.com/prasannavl/p7-borders-shell-extension).
 
 ## Custom Layouts
-Easily changeable via the graphical tool in settings, or create your own JSON: see [layouts.md](layouts.md).
+Easily changeable via the graphical tool in settings, or create your own JSON: see [layouts.md](docs/layouts.md).
+
+## Requirements
+GNOME Shell 49 or 50.
 
 ## Contributing
 See [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -20,10 +20,6 @@ We aim to use the best solutions and APIs available for GNOME Shell.
 Please rely on GNOME Shell signals (`size-changed`, `window-created`, etc.) or frame-synced deferrals (`GLib.idle_add`, `Meta.LaterType.BEFORE_REDRAW`) instead of arbitrary timeouts (`GLib.timeout_add`).
 
 ### AI Guidelines
-This project has a project-level `AGENTS.md` set up. 
-You may have your own requirements in `CLAUDE.md`, `CODEX.md`, `CURSOR.md`, or `GEMINI.md`.
-Please make sure to tell your agent to respect both `AGENTS.md` and your local instruction file.
-
 Submitting AI-generated code is your responsibility. Review all code thoroughly. We reserve the right to withhold review and merge for pull requests containing excessive or unreadable code.
 
 ### Testing

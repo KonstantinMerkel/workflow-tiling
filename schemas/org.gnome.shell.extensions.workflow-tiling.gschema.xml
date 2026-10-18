@@ -16,11 +16,6 @@
       <summary>Debug Logging</summary>
       <description>Enable verbose debug logging in system logs.</description>
     </key>
-    <key name="monitor-transition-behavior" type="s">
-      <default>'escalate'</default>
-      <summary>Monitor Transition Behavior</summary>
-      <description>Behavior when window crosses monitor boundary ('escalate' or 'swap').</description>
-    </key>
 
     <key name="keybindings-mode" type="s">
       <default>'default'</default>
@@ -144,27 +139,11 @@
       <description>Close all windows on the current workspace.</description>
     </key>
 
-
     <key name="shortcut-switch-monitor" type="as">
       <default><![CDATA[[]]]></default>
       <summary>Switch Monitors</summary>
       <description>Swap monitors content or swap active with primary.</description>
     </key>
-
-
-    <key name="shortcut-port-monitor-left" type="as">
-      <default><![CDATA[[]]]></default>
-      <summary>Port Monitor Left</summary>
-      <description>Move active monitor windows to adjacent left workspace.</description>
-    </key>
-
-
-    <key name="shortcut-port-monitor-right" type="as">
-      <default><![CDATA[[]]]></default>
-      <summary>Port Monitor Right</summary>
-      <description>Move active monitor windows to adjacent right workspace.</description>
-    </key>
-
 
     <key name="shortcut-unminimize-workspace" type="as">
       <default><![CDATA[[]]]></default>

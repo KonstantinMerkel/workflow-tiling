@@ -3,7 +3,7 @@
 The extension uses two different strategies to bind shortcuts due to GNOME Mutter architecture limitations:
 
 ## 1. Native C-Handler Hijacking (`Meta.keybindings_set_custom_handler`)
-Used strictly in `Default` mode for known GNOME shortcuts (like `<Super>Left` which GNOME maps to `toggle-tiled-left`).
+Used in `Default` mode for known GNOME shortcuts (like `<Super>Left` which GNOME maps to `toggle-tiled-left`) and always for the native window-state actions `maximize`, `unmaximize`, `toggle-maximized` (Alt+F10) and `toggle-fullscreen`, which call `Engine.toggleOverride`.
 * **Why:** High priority. Safely intercepts the GNOME action at the C-level before Mutter can process it.
 * **Limitation:** Requires knowing the hardcoded GNOME string action name (e.g. `toggle-tiled-left`). It cannot intercept an arbitrary custom keystroke without knowing what action it triggers.
 
@@ -21,6 +21,9 @@ To bypass the limitation of `Main.wm.addKeybinding`, `ShadowManager` temporarily
 3. **Filter:** If a native array contains the normalized shortcut string, it is explicitly filtered out.
 4. **Backup:** The *original* array is saved into `org.gnome.shell.extensions.workflow-tiling.shadowed-keybindings` (JSON string).
 5. **Restore:** On `disable()` or `rebindAll()`, the JSON backup is read, and the native schema keys are written back to their exact original arrays.
+
+### Lock Screen
+While the screen is locked, `KeybindingAdapter.suspend()` removes the extension's bindings and custom handlers (`Main.wm.removeKeybinding`, `Meta.keybindings_set_custom_handler(name, null)`), and `resume()` re-adds them on unlock. Shadowed native shortcuts stay shadowed, so native keybinding schemas are not rewritten on every lock.
 
 ### Crash Resilience
 Because the backup is written to standard `gsettings` before any keys are unbound, an unexpected shell crash will not permanently destroy native user shortcuts. The state is restored perfectly on the next instantiation.
