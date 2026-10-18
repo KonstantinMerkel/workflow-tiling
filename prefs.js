@@ -6,8 +6,8 @@ import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { Logger } from './lib/utils/logger.js';
-import { LayoutPreviewPage } from './lib/editor/preview.js';
-import { LayoutEditorPage } from './lib/editor/editor.js';
+import { LayoutPreviewPage } from './prefs/preview.js';
+import { LayoutEditorPage } from './prefs/editor.js';
 
 const ShortcutRowMixin = {
     _recordShortcut() {
@@ -146,7 +146,7 @@ const ShortcutRow = GObject.registerClass(
 );
 Object.assign(ShortcutRow.prototype, ShortcutRowMixin);
 
-// Layout editor page outsourced to lib/editor/
+// Layout editor pages live in prefs/
 export default class WorkflowTilingPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings('org.gnome.shell.extensions.workflow-tiling');
@@ -186,25 +186,6 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         updateGapsVisibility();
 
         page.add(gapsGroup);
-
-        // --- Monitor Transition Group ---
-        const transitionGroup = new Adw.PreferencesGroup({ title: 'Monitor Transition' });
-        const transitionRow = new Adw.SwitchRow({
-            title: 'Swap Windows',
-            subtitle: 'Swap windows across monitors instead of escalating/de-escalating',
-        });
-        transitionRow.active = settings.get_string('monitor-transition-behavior') === 'swap';
-        transitionRow.connect('notify::active', () => {
-            settings.set_string('monitor-transition-behavior', transitionRow.active ? 'swap' : 'escalate');
-        });
-        settings.connect('changed::monitor-transition-behavior', () => {
-            const active = settings.get_string('monitor-transition-behavior') === 'swap';
-            if (transitionRow.active !== active) {
-                transitionRow.active = active;
-            }
-        });
-        transitionGroup.add(transitionRow);
-        page.add(transitionGroup);
 
         const wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.keybindings' });
         const allRows = [];
@@ -359,14 +340,6 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         wsOpsGroup.add(createRow(settings, 'shortcut-close-workspace', 'Close Workspace Windows'));
         wsOpsGroup.add(createRow(settings, 'shortcut-unminimize-workspace', 'Unminimize Workspace'));
         shortcutsPage.add(wsOpsGroup);
-
-        // --- Moving to Workspace ---
-        const wsMoveGroup = new Adw.PreferencesGroup({ title: 'Moving to Workspace' });
-        wsMoveGroup.add(createRow(wmSettings, 'move-to-workspace-left', 'Move Window to Workspace Left', 'System'));
-        wsMoveGroup.add(createRow(wmSettings, 'move-to-workspace-right', 'Move Window to Workspace Right', 'System'));
-        wsMoveGroup.add(createRow(settings, 'shortcut-port-monitor-left', 'Port Monitor to Left Workspace'));
-        wsMoveGroup.add(createRow(settings, 'shortcut-port-monitor-right', 'Port Monitor to Right Workspace'));
-        shortcutsPage.add(wsMoveGroup);
 
         // --- Monitor Actions ---
         const monitorGroup = new Adw.PreferencesGroup({ title: 'Monitor Actions' });

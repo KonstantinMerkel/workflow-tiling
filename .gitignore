@@ -9,3 +9,6 @@ GEMINI.md
 .agents
 coverage/
 schemas/gschemas.compiled
+.claude/
+planning/
+AGENTS.md

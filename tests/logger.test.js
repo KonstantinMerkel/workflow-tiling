@@ -75,31 +75,27 @@ describe('Logger', () => {
     });
 });
 
-describe('SettingsManager debug logging sync', () => {
+describe('GSettingsConfigSource debug logging sync', () => {
     it('should update Logger.DEBUG based on settings', async () => {
-        const { SettingsManager } = await import('../lib/settings.js');
+        const { GSettingsConfigSource } = await import('../lib/shell/config-source.js');
         const listeners = {};
         const mockSettings = {
             'enable-gaps': false,
             'debug-logging': false,
-            'custom-layouts': '',
-            'monitor-transition-behavior': 'escalate'
+            'custom-layouts': '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}]}',
+        };
+        const settings = {
+            get_boolean: (key) => mockSettings[key] ?? false,
+            get_int: () => 0,
+            get_string: (key) => mockSettings[key] ?? '',
+            connect: (signal, cb) => {
+                listeners[signal] = cb;
+                return signal;
+            },
+            disconnect: vi.fn(),
         };
 
-        const mockExtension = {
-            getSettings: () => ({
-                get_boolean: (key) => mockSettings[key] ?? false,
-                get_int: () => 0,
-                get_string: (key) => mockSettings[key] ?? '',
-                connect: (signal, cb) => {
-                    listeners[signal] = cb;
-                    return signal;
-                },
-                disconnect: vi.fn()
-            })
-        };
-
-        const sm = new SettingsManager(mockExtension);
+        const source = new GSettingsConfigSource(settings);
         expect(Logger.DEBUG).toBe(false);
 
         mockSettings['debug-logging'] = true;
@@ -110,7 +106,6 @@ describe('SettingsManager debug logging sync', () => {
         listeners['changed::debug-logging']();
         expect(Logger.DEBUG).toBe(false);
 
-        sm.destroy();
+        source.destroy();
     });
 });
-

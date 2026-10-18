@@ -4,16 +4,15 @@
   "uuid": "workflow-tiling@KonstantinMerkel.github.io",
   "url": "https://github.com/KonstantinMerkel/workflow-tiling/",
   "shell-version": [
-    "45",
-    "46",
-    "47",
-    "48",
     "49",
     "50"
   ],
-  "version": 1,
   "version-name": "0.1.0-beta",
   "gettext-domain": "workflow-tiling",
+  "session-modes": [
+    "user",
+    "unlock-dialog"
+  ],
   "settings-schema": "org.gnome.shell.extensions.workflow-tiling",
   "donations": {
     "github": "KonstantinMerkel"
