@@ -4,30 +4,30 @@ import { LayoutParser } from '../../lib/domain/layout/parser.js';
 import { Direction } from '../../lib/domain/types.js';
 import { DEFAULT_LAYOUTS } from '../helpers/fakes.js';
 
-const half = () => new Layout([new ScreenEstate(0, 0, 0, 50, 100), new ScreenEstate(1, 50, 0, 50, 100)]);
+const half = () => new Layout([new ScreenEstate({ id: 0, x: 0, y: 0, w: 50, h: 100 }), new ScreenEstate({ id: 1, x: 50, y: 0, w: 50, h: 100 })]);
 const masterStack = () =>
     new Layout([
-        new ScreenEstate(0, 0, 0, 50, 100),
-        new ScreenEstate(1, 50, 0, 50, 50),
-        new ScreenEstate(2, 50, 50, 50, 50),
+        new ScreenEstate({ id: 0, x: 0, y: 0, w: 50, h: 100 }),
+        new ScreenEstate({ id: 1, x: 50, y: 0, w: 50, h: 50 }),
+        new ScreenEstate({ id: 2, x: 50, y: 50, w: 50, h: 50 }),
     ]);
 
 describe('ScreenEstate', () => {
     it('converts to pixels with outer and inner gaps', () => {
         const area = { x: 0, y: 0, width: 1000, height: 1000 };
-        expect(new ScreenEstate(0, 0, 0, 100, 100).toAbsolute(area)).toEqual({ x: 4, y: 4, width: 992, height: 992 });
+        expect(new ScreenEstate({ id: 0, x: 0, y: 0, w: 100, h: 100 }).toAbsolute(area)).toEqual({ x: 4, y: 4, width: 992, height: 992 });
 
-        const left = new ScreenEstate(0, 0, 0, 50, 100).toAbsolute(area);
-        const right = new ScreenEstate(1, 50, 0, 50, 100).toAbsolute(area);
+        const left = new ScreenEstate({ id: 0, x: 0, y: 0, w: 50, h: 100 }).toAbsolute(area);
+        const right = new ScreenEstate({ id: 1, x: 50, y: 0, w: 50, h: 100 }).toAbsolute(area);
         expect(left).toMatchObject({ x: 4, width: 493 });
         expect(right).toMatchObject({ x: 503, width: 493 });
         expect(right.x - (left.x + left.width)).toBe(6);
     });
 
     it('rejects estates outside the work area and is immutable', () => {
-        expect(() => new ScreenEstate(0, -1, 0, 100, 100)).toThrow('out of bounds');
-        expect(() => new ScreenEstate(0, 0, 0, 110, 100)).toThrow('out of bounds');
-        const estate = new ScreenEstate(0, 0, 0, 100, 100);
+        expect(() => new ScreenEstate({ id: 0, x: -1, y: 0, w: 100, h: 100 })).toThrow('out of bounds');
+        expect(() => new ScreenEstate({ id: 0, x: 0, y: 0, w: 110, h: 100 })).toThrow('out of bounds');
+        const estate = new ScreenEstate({ id: 0, x: 0, y: 0, w: 100, h: 100 });
         expect(() => {
             estate.pct_x = 10;
         }).toThrow();
@@ -38,14 +38,14 @@ describe('Layout validation', () => {
     it('accepts a full, non-overlapping layout and freezes it', () => {
         const layout = half();
         expect(layout.size).toBe(2);
-        expect(() => layout.estates.push(new ScreenEstate(2, 0, 0, 1, 1))).toThrow();
+        expect(() => layout.estates.push(new ScreenEstate({ id: 2, x: 0, y: 0, w: 1, h: 1 }))).toThrow();
     });
 
     it('rejects overlap, gaps, missing and duplicate ids', () => {
-        expect(() => new Layout([new ScreenEstate(0, 0, 0, 60, 100), new ScreenEstate(1, 40, 0, 60, 100)])).toThrow(
+        expect(() => new Layout([new ScreenEstate({ id: 0, x: 0, y: 0, w: 60, h: 100 }), new ScreenEstate({ id: 1, x: 40, y: 0, w: 60, h: 100 })])).toThrow(
             'overlap detected',
         );
-        expect(() => new Layout([new ScreenEstate(0, 0, 0, 50, 100), new ScreenEstate(1, 50, 0, 40, 100)])).toThrow(
+        expect(() => new Layout([new ScreenEstate({ id: 0, x: 0, y: 0, w: 50, h: 100 }), new ScreenEstate({ id: 1, x: 50, y: 0, w: 40, h: 100 })])).toThrow(
             /must have no gaps/,
         );
     });
