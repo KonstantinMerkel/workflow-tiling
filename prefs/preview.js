@@ -989,6 +989,7 @@ export const LayoutPreviewPage = GObject.registerClass(
                             drawingArea.queue_draw();
                             // Debounce UI update
                             if (this._updateTimeout) GLib.source_remove(this._updateTimeout);
+                            // eslint-disable-next-line no-restricted-properties -- debounce pending the editor refactor
                             this._updateTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
                                 refreshEditors();
                                 this._updateTimeout = null;

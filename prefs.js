@@ -19,20 +19,17 @@ const ShortcutRowMixin = {
         });
         dialog.add_response('cancel', 'Cancel');
 
-        let surface = null;
-        if (window && typeof window.get_surface === 'function') {
-            surface = window.get_surface();
-            if (surface && typeof surface.inhibit_system_shortcuts === 'function') {
-                try {
-                    surface.inhibit_system_shortcuts(null);
-                } catch (e) {
-                    console.error('Failed to inhibit system shortcuts:', e);
-                }
+        let surface = window?.get_surface() ?? null;
+        if (surface) {
+            try {
+                surface.inhibit_system_shortcuts(null);
+            } catch (e) {
+                Logger.warn(`Prefs: failed to inhibit system shortcuts: ${e.message}`);
             }
         }
 
         const cleanup = () => {
-            if (surface && typeof surface.restore_system_shortcuts === 'function') {
+            if (surface) {
                 try {
                     surface.restore_system_shortcuts();
                 } catch {

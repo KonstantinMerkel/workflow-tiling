@@ -302,6 +302,7 @@ vi.mock('../prefs/editor.js', () => ({
 
 // Import WorkflowTilingPreferences (relative to tests/ dir)
 import WorkflowTilingPreferences from '../prefs.js';
+import { Logger } from '../lib/utils/logger.js';
 
 describe('WorkflowTilingPreferences', () => {
     let prefs;
@@ -475,7 +476,7 @@ describe('WorkflowTilingPreferences', () => {
             expect(dialog.closed).toBeUndefined(); // Should not close
         });
 
-        it('should handle missing surface or inhibit method without throwing', () => {
+        it('should handle a missing surface without throwing', () => {
             vi.spyOn(testRow, 'get_root').mockReturnValue({
                 get_surface() { return null; }
             });
@@ -485,6 +486,7 @@ describe('WorkflowTilingPreferences', () => {
         });
 
         it('should handle surface inhibit/restore throwing errors without crashing', () => {
+            const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
             vi.spyOn(testRow, 'get_root').mockReturnValue({
                 get_surface() {
                     return {
@@ -502,6 +504,7 @@ describe('WorkflowTilingPreferences', () => {
             
             // Re-simulate a response event trigger
             dialog.emit('response');
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('Inhibit failed'));
         });
     });
 
