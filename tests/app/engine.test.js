@@ -469,6 +469,19 @@ describe('drag', () => {
         expect(windows.facts(1)).toMatchObject({ maximized: false, frame: LEFT_HALF });
     });
 
+    it('schedules no pass for pointer moves that keep the drop target', () => {
+        const { engine, display, open } = setup();
+        open(1);
+        open(2);
+        engine.onGrabBegin(1, 'move');
+        engine.onPointerMoved({ x: 750, y: 500 });
+        display.flushLaters();
+        engine.onPointerMoved({ x: 760, y: 520 }); // same swap target
+        expect(display.pendingLaters).toBe(0);
+        engine.onPointerMoved({ x: 100, y: 500 }); // back over its own tile: no target
+        expect(display.pendingLaters).toBe(1);
+    });
+
     it('retiles other monitors when a window closes mid-drag', () => {
         const { windows, engine, display, open } = setup();
         open(1);
