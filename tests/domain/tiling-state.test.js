@@ -131,6 +131,18 @@ describe('TilingState', () => {
         expect(view.slotsAt(A)).toEqual([2]);
     });
 
+    it('counts writes in its version', () => {
+        const state = stateWith([1, 2]);
+        const before = state.version;
+        state.slotsAt(A);
+        state.record(1);
+        expect(state.version).toBe(before);
+        state.swap(1, 2);
+        expect(state.version).toBe(before + 1);
+        state.setMode(1, Mode.FLOATING);
+        expect(state.version).toBe(before + 2);
+    });
+
     it('clones independently', () => {
         const state = stateWith([1, 2]);
         const copy = state.clone();
