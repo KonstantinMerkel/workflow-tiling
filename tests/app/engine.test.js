@@ -94,6 +94,20 @@ describe('arrival and layout', () => {
         }
     });
 
+    it('schedules no pass for the answer to a request', () => {
+        const { windows, engine, display, open } = setup();
+        windows.constrain = (frame) => ({ ...frame, width: 10 }); // the client answers after the follow-up pass
+        open(1);
+        windows.constrain = (frame) => frame;
+        windows.set(1, { frame: FULL });
+        engine.onFrameChanged(1, true);
+        expect(display.pendingLaters).toBe(0);
+
+        windows.set(1, { frame: { x: 33, y: 33, width: 100, height: 100 } }); // someone else
+        engine.onFrameChanged(1, true);
+        expect(display.pendingLaters).toBe(1);
+    });
+
     it('computes the initial frame for a window about to be mapped without re-requesting it', () => {
         const { windows, engine, display, open } = setup();
         open(1);
