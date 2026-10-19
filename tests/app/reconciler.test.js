@@ -34,24 +34,62 @@ describe('Reconciler', () => {
         expect(windows.callsOf('setFrame')).toHaveLength(1); // settled: constraint left alone
     });
 
-    it('heals a late commit with one re-request of the same frame', () => {
+    it('accepts a late answer without re-requesting the frame', () => {
         const { display, windows, state, reconciler } = setup();
         windows.constrain = () => ({ ...OLD });
         windows.add(1);
         state.place(1, 1, LOC, Mode.TILED);
         reconciler.markDirty(LOC);
-        display.flushLaters(); // follow-up pass settles on the old frame
+        display.flushLaters(); // follow-up pass settles provisionally on the old frame
 
-        windows.constrain = (frame) => frame;
-        windows.set(1, { frame: { ...FULL } }); // the client commits after the follow-up pass
+        windows.set(1, { frame: { ...FULL } }); // the client answers after the follow-up pass
         reconciler.noteFrameChanged(1, true);
         reconciler.markDirty(LOC);
         display.flushLaters();
-        expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([FULL, FULL]);
+        expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([FULL]);
+    });
 
+    it('reverts a size change that follows the answer', () => {
+        const { display, windows, state, reconciler } = setup();
+        windows.constrain = () => ({ ...OLD });
+        windows.add(1);
+        state.place(1, 1, LOC, Mode.TILED);
+        reconciler.markDirty(LOC);
+        display.flushLaters();
+        windows.set(1, { frame: { ...FULL } });
+        reconciler.noteFrameChanged(1, true); // the answer
+
+        windows.constrain = (frame) => frame;
+        windows.set(1, { frame: { x: 5, y: 5, width: 300, height: 300 } });
+        reconciler.noteFrameChanged(1, true); // someone else
+        reconciler.markDirty(LOC);
+        display.flushLaters();
+        expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([FULL, FULL]);
+        expect(windows.facts(1).frame).toEqual(FULL);
+    });
+
+    it('awaits no answer for a request that keeps the size', () => {
+        const { display, windows, state, reconciler } = setup();
+        windows.add(1, { frame: { x: 9, y: 9, width: 1000, height: 1000 } });
+        state.place(1, 1, LOC, Mode.TILED);
+        reconciler.markDirty(LOC);
+        display.flushLaters(); // pure move, settled
+
+        windows.set(1, { frame: { x: 0, y: 0, width: 400, height: 400 } });
+        reconciler.noteFrameChanged(1, true); // not an answer: reverted
         reconciler.markDirty(LOC);
         display.flushLaters();
         expect(windows.callsOf('setFrame')).toHaveLength(2);
+        expect(windows.facts(1).frame).toEqual(FULL);
+    });
+
+    it('clamps requests to the window size limits', () => {
+        const { display, windows, state, reconciler } = setup();
+        windows.add(1, { sizeLimits: { min: { width: 1200, height: 100 }, max: { width: 2000, height: 600 } } });
+        state.place(1, 1, LOC, Mode.TILED);
+        reconciler.markDirty(LOC);
+        display.flushLaters();
+        expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([{ x: 0, y: 0, width: 1200, height: 600 }]);
     });
 
     it('keeps a request resolving while the window has no frame yet (not mapped)', () => {

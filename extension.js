@@ -23,7 +23,7 @@ export default class WorkflowTilingExtension extends Extension {
         this._configSource.onKeybindingsChanged(() => this._keybindings?.rebindAll());
 
         this._displayPort = new MutterDisplayPort();
-        this._windowPort = new MutterWindowPort(this._displayPort);
+        this._windowPort = new MutterWindowPort(this._displayPort, Number(Config.PACKAGE_VERSION.split('.')[0]));
         this._indicator = new StIndicator();
 
         this._sessionModeId = Main.sessionMode.connect('updated', () => this._applySessionMode());

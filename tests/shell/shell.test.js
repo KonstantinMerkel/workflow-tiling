@@ -55,6 +55,7 @@ function fakeWindow(id, overrides = {}) {
         maximized_horizontally: false,
         maximized_vertically: false,
         is_fullscreen: () => false,
+        allows_resize: () => true,
         get_frame_rect: () => ({ x: 1, y: 2, width: 3, height: 4 }),
         move_resize_frame: vi.fn(),
         unmaximize: vi.fn(),
@@ -160,6 +161,29 @@ describe('MutterWindowPort', () => {
         Meta.prefs_get_workspaces_only_on_primary.mockReturnValueOnce(true);
         port.register(fakeWindow(2, { is_on_all_workspaces: () => true, is_on_primary_monitor: () => false }));
         expect(port.facts(2)).toMatchObject({ userSticky: false, tilable: true, workspace: ALL_WORKSPACES });
+    });
+
+    it('reports size limits as frame sizes on GNOME 50', () => {
+        const port = new MutterWindowPort(displayPort, 50);
+        port.register(
+            fakeWindow(1, {
+                frame_rect_to_client_rect: () => ({ x: 1, y: 2, width: 1, height: 2 }),
+                get_min_size: () => [true, 100, 50],
+                get_max_size: () => [false, 0, 0],
+            }),
+        );
+        expect(port.facts(1).sizeLimits).toEqual({ min: { width: 102, height: 52 }, max: null });
+    });
+
+    it('limits a non-resizable window to its size and reports none for maximized ones', () => {
+        const port = new MutterWindowPort(displayPort, 49);
+        port.register(fakeWindow(1, { allows_resize: () => false }));
+        port.register(fakeWindow(2, { allows_resize: () => false, maximized_horizontally: true }));
+        port.register(fakeWindow(3));
+        const size = { width: 3, height: 4 };
+        expect(port.facts(1).sizeLimits).toEqual({ min: size, max: size });
+        expect(port.facts(2).sizeLimits).toEqual({ min: null, max: null });
+        expect(port.facts(3).sizeLimits).toEqual({ min: null, max: null });
     });
 
     it('executes commands only for known windows', () => {
