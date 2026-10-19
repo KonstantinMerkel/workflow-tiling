@@ -7,29 +7,48 @@ on:
     branches: [ "master", "develop" ]
 
 jobs:
-  test:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [22.x]
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        
-    - name: Install system dependencies
-      run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev
-      
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Run tests
-      run: npm test
-      
-    - name: Run linter
-      run: npm run lint
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  schema:
+    name: GSettings schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libglib2.0-bin
+      - run: npm run test:schema
+
+  imports:
+    name: Import check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - run: npm run test:imports
+
+  unit:
+    name: Unit tests
+    needs: [lint, schema, imports]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      # vitest directly: `npm test` would repeat the schema and import checks through pretest
+      - run: npx vitest run
