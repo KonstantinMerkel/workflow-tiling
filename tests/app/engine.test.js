@@ -469,6 +469,63 @@ describe('drag', () => {
         expect(windows.facts(1)).toMatchObject({ maximized: false, frame: LEFT_HALF });
     });
 
+    it('retiles other monitors when a window closes mid-drag', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        open(2);
+        [3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
+        engine.onGrabBegin(1, 'move');
+        engine.onPointerMoved({ x: 100, y: 100 });
+        engine.onWindowGone(4);
+        display.flushLaters();
+        expect(windows.facts(3).frame).toEqual({ x: 1000, y: 0, width: 1000, height: 1000 });
+    });
+
+    it('opens a window in its tile mid-drag', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        open(3, { monitor: 'DP-2', monitorIndex: 1 });
+        engine.onGrabBegin(1, 'move');
+        engine.onPointerMoved({ x: 100, y: 100 });
+        windows.add(2, { monitor: 'DP-2', monitorIndex: 1 });
+        engine.onWindowAppeared(windows.facts(2));
+        expect(engine.initialFrame(2)).toEqual({ x: 1500, y: 0, width: 500, height: 1000 });
+        display.flushLaters();
+        expect(windows.facts(3).frame).toEqual({ x: 1000, y: 0, width: 500, height: 1000 });
+    });
+
+    it('floats the drop when the target fills up mid-drag', () => {
+        const { engine, display, open } = setup();
+        open(1);
+        open(2);
+        [3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
+        engine.onGrabBegin(1, 'move');
+        engine.onPointerMoved({ x: 1500, y: 500 });
+        expect(engine.drag.target()).toMatchObject({ kind: 'relocate', location: DP2 });
+        expect(engine.drag.target().slot).not.toBeNull();
+
+        open(5, { monitor: 'DP-2', monitorIndex: 1 });
+        engine.onGrabEnd(1, 'move');
+        display.flushLaters();
+        expect(engine.state.slotsAt(DP2)).toEqual([3, 4, 5]);
+        expect(engine.state.record(1)).toMatchObject({ location: DP2, mode: Mode.FLOATING });
+    });
+
+    it('drops a swap whose partner closed mid-drag', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        open(2);
+        engine.onGrabBegin(1, 'move');
+        engine.onPointerMoved({ x: 750, y: 500 });
+        expect(engine.drag.target()).toEqual({ kind: 'swap', other: 2 });
+
+        engine.onWindowGone(2);
+        engine.onGrabEnd(1, 'move');
+        display.flushLaters();
+        expect(engine.state.slotsAt(DP1)).toEqual([1]);
+        expect(windows.facts(1).frame).toEqual(FULL);
+    });
+
     it('snaps back after a manual resize', () => {
         const { windows, engine, display, open } = setup();
         open(1);
