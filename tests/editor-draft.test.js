@@ -15,6 +15,12 @@ import {
 } from '../prefs/draft.js';
 import { LayoutParser } from '../lib/domain/layout/parser.js';
 
+const single = [{ id: 0, x: 0, y: 0, w: 100, h: 100 }];
+const halves = [
+    { id: 0, x: 0, y: 0, w: 50, h: 100 },
+    { id: 1, x: 50, y: 0, w: 50, h: 100 },
+];
+
 // Master left, two stacked slots right.
 const masterStack = () => [
     { id: 0, x: 0, y: 0, w: 60, h: 100 },
@@ -23,15 +29,18 @@ const masterStack = () => [
 ];
 
 describe('editor draft geometry', () => {
-    it('rounds and sorts raw slots by id', () => {
-        const draft = toDraft([
-            { id: '1', x: 49.6, y: 0, w: 50.4, h: 100 },
-            { id: 0, x: 0, y: 0, w: 49.6, h: 100 },
-        ]);
+    it('rounds edges so shared edges stay shared', () => {
+        const third = 100 / 3;
+        const thirds = [0, 1, 2].map((i) => ({ id: i, x: i * third, y: 0, w: third, h: 100 }));
+        const parse = (three) => LayoutParser.parse(JSON.stringify({ 1: single, 2: halves, 3: three }));
+        const draft = toDraft(parse(thirds).getLayoutForCount(3).estates);
         expect(draft).toEqual([
-            { id: 0, x: 0, y: 0, w: 50, h: 100 },
-            { id: 1, x: 50, y: 0, w: 50, h: 100 },
+            { id: 0, x: 0, y: 0, w: 33, h: 100 },
+            { id: 1, x: 33, y: 0, w: 34, h: 100 },
+            { id: 2, x: 67, y: 0, w: 33, h: 100 },
         ]);
+        moveCut(draft, 'x', 67, 90);
+        expect(() => parse(draft)).not.toThrow();
     });
 
     it('lists interior cuts per axis', () => {
@@ -122,6 +131,10 @@ describe('editor draft geometry', () => {
             { id: 0, x: 0, y: 0, w: 50, h: 100 },
             { id: 1, x: 50, y: 0, w: 50, h: 100 },
         ]);
+    });
+
+    it('refuses to halve a slot below twice the minimum', () => {
+        expect(splitLargest([{ id: 0, x: 0, y: 0, w: 9, h: 9 }])).toBeNull();
     });
 
     it('produces layouts the parser accepts', () => {
