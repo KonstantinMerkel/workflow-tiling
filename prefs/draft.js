@@ -7,16 +7,14 @@ export const MIN_SLOT = 5;
 // Extent key belonging to each position key.
 export const SPAN = { x: 'w', y: 'h' };
 
-export function toDraft(rawSlots) {
-    return rawSlots
-        .map((s) => ({
-            id: Number(s.id ?? 0),
-            x: Math.round(s.x),
-            y: Math.round(s.y),
-            w: Math.round(s.w),
-            h: Math.round(s.h),
-        }))
-        .sort((a, b) => a.id - b.id);
+// Converts a Layout's estates (sorted by id). Edges are rounded rather than sizes, so slots that
+// share an edge still share it after rounding.
+export function toDraft(estates) {
+    return estates.map((e) => {
+        const x = Math.round(e.pct_x);
+        const y = Math.round(e.pct_y);
+        return { id: e.id, x, y, w: Math.round(e.pct_x + e.pct_w) - x, h: Math.round(e.pct_y + e.pct_h) - y };
+    });
 }
 
 export function cutsOf(slots, axis) {

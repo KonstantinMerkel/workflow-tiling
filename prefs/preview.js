@@ -106,19 +106,23 @@ export const LayoutPreviewPage = GObject.registerClass(
             this._rebuild();
         }
 
-        // Validated layouts as Map<count, draft>, ascending by count. Throws on invalid JSON.
+        // Validated layouts as Map<count, draft> for counts 1..max. Throws on invalid JSON.
         _readLayouts() {
-            const json = this.settings.get_string('custom-layouts');
-            LayoutParser.parse(json);
-            const data = JSON.parse(json?.trim() || '{}');
-            const counts = Object.keys(data).map(Number).sort((a, b) => a - b);
-            return new Map(counts.map((c) => [c, toDraft(data[c])]));
+            const escalator = LayoutParser.parse(this.settings.get_string('custom-layouts'));
+            const layouts = new Map();
+            for (let c = 1; c <= (escalator?.getMaxCount() ?? 0); c++) {
+                layouts.set(c, toDraft(escalator.getLayoutForCount(c).estates));
+            }
+            return layouts;
         }
 
+        // Rebuilds once itself, so the page's own change signal is blocked while writing.
         _store(mutate) {
             const data = JSON.parse(this.settings.get_string('custom-layouts')?.trim() || '{}');
             mutate(data);
+            this.settings.block_signal_handler(this._changedId);
             this.settings.set_string('custom-layouts', JSON.stringify(data, null, 2));
+            this.settings.unblock_signal_handler(this._changedId);
             this._rebuild();
         }
 
@@ -145,6 +149,8 @@ export const LayoutPreviewPage = GObject.registerClass(
                 );
                 return;
             }
+            // A draft whose layout is no longer stored (e.g. removed by a cascading delete) is dropped.
+            if (this._editing && !layouts.has(this._editing.count)) this._editing = null;
             if (this._editing) layouts.set(this._editing.count, this._editing.slots);
 
             if (layouts.size === 0) {
@@ -169,10 +175,13 @@ export const LayoutPreviewPage = GObject.registerClass(
             });
             this._list.append(arrow());
 
+            // While a draft is open, adding or editing another layout would discard it, so only the
+            // draft's own Save / Cancel are offered.
             const max = counts[counts.length - 1];
             const add = new Gtk.Button({
                 child: new Gtk.Image({ icon_name: 'list-add-symbolic', pixel_size: 24 }),
                 tooltip_text: 'Add Layout',
+                sensitive: !this._editing,
                 css_classes: ['suggested-action', 'circular'],
                 halign: Gtk.Align.CENTER,
                 margin_bottom: 24,
@@ -200,7 +209,7 @@ export const LayoutPreviewPage = GObject.registerClass(
             });
 
             const header = new Gtk.Box({ spacing: 8, margin_top: 8, margin_end: 8, halign: Gtk.Align.END });
-            if (!editing && count > 1) {
+            if (!this._editing && count > 1) {
                 const edit = new Gtk.Button({
                     icon_name: 'document-edit-symbolic',
                     tooltip_text: 'Edit layout',
@@ -310,6 +319,9 @@ export const LayoutPreviewPage = GObject.registerClass(
             motion.connect('motion', (_c, x, y) => {
                 if (grabbed.x === null && grabbed.y === null) setCursor(cutsUnder(x, y));
             });
+            motion.connect('leave', () => {
+                if (grabbed.x === null && grabbed.y === null) setCursor(grabbed);
+            });
             canvas.add_controller(motion);
 
             const drag = new Gtk.GestureDrag();
@@ -326,9 +338,10 @@ export const LayoutPreviewPage = GObject.registerClass(
                 }
                 sync();
             });
-            drag.connect('drag-end', () => {
+            drag.connect('drag-end', (gesture, dx, dy) => {
+                const [, sx, sy] = gesture.get_start_point();
                 grabbed.x = grabbed.y = null;
-                setCursor(grabbed);
+                setCursor(cutsUnder(sx + dx, sy + dy));
             });
             canvas.add_controller(drag);
 
@@ -412,13 +425,17 @@ export const LayoutPreviewPage = GObject.registerClass(
             const headerBar = new Adw.HeaderBar();
             const stop = new Gtk.Button({ label: 'Stop', valign: Gtk.Align.CENTER });
             stop.connect('clicked', () => dialog.close());
+            const halved = splitLargest(base);
             const largest = new Gtk.Button({
                 label: 'Split Largest',
-                tooltip_text: 'Halve the largest slot and continue editing',
+                tooltip_text: halved
+                    ? 'Halve the largest slot and continue editing'
+                    : 'The largest slot is too small to halve',
+                sensitive: halved !== null,
                 valign: Gtk.Align.CENTER,
                 css_classes: ['suggested-action'],
             });
-            largest.connect('clicked', () => accept(splitLargest(base)));
+            largest.connect('clicked', () => accept(halved));
             headerBar.pack_start(stop);
             headerBar.pack_end(largest);
 
