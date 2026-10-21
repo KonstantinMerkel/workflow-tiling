@@ -57,6 +57,15 @@
       <summary>Saved Button Layout</summary>
       <description>Internal: the original org.gnome.desktop.wm.preferences button-layout while the maximize button is hidden.</description>
     </key>
+    <key name="hotplug-policy" type="s">
+      <choices>
+        <choice value="restore-by-monitor"/>
+        <choice value="follow-primary"/>
+      </choices>
+      <default>'restore-by-monitor'</default>
+      <summary>Monitor Change Policy</summary>
+      <description>'restore-by-monitor': windows stay with their monitor and return when it is reconnected. 'follow-primary': the primary monitor's windows move to whichever monitor becomes primary.</description>
+    </key>
 
     <key name="keybindings-mode" type="s">
       <default>'default'</default>

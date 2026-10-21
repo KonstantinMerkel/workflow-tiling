@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { TilingState } from '../../lib/domain/tiling-state.js';
 import { Topology } from '../../lib/domain/topology.js';
 import { entrySlot } from '../../lib/domain/entry-slot.js';
-import { planHotplug } from '../../lib/domain/policies/hotplug.js';
+import { HotplugPolicy, planHotplug } from '../../lib/domain/policies/hotplug.js';
 import { toggledMode } from '../../lib/domain/policies/override/toggle.js';
 import { FocusPolicy, modesWhenForward } from '../../lib/domain/policies/override/focus.js';
 import {
@@ -113,6 +113,83 @@ describe('planHotplug', () => {
         expect(planHotplug(noEdid.view(), new Topology([laptop]), new Topology([laptop, office])).restore).toEqual([
             { id: 1, monitorId: 'DP-3' },
         ]);
+    });
+});
+
+describe('planHotplug with FOLLOW_PRIMARY', () => {
+    const FOLLOW = HotplugPolicy.FOLLOW_PRIMARY;
+    const laptop = monitor('eDP-1', 0, 0, { edid: 'EDID:LAP:1' });
+    const home = monitor('DP-6', 1, 1000, { primary: true, edid: 'EDID:HOME:1' });
+    const office = monitor('DP-6', 1, 1000, { primary: true, edid: 'EDID:OFFICE:1' });
+    const asPrimary = (m) => ({ ...m, primary: true });
+    const docked = new Topology([laptop, home]);
+    const undocked = new Topology([asPrimary(laptop)]);
+
+    function dockedState() {
+        const state = new TilingState();
+        state.place(1, 1, location(1, 'DP-6'), Mode.TILED);
+        state.place(2, 2, location(1, 'DP-6'), Mode.FLOATING);
+        state.place(3, 3, location(1, 'eDP-1'), Mode.TILED);
+        return state;
+    }
+
+    it('moves the primary windows on undock and evacuates the new primary\'s own windows', () => {
+        const plan = planHotplug(dockedState().view(), docked, undocked, FOLLOW);
+        expect(plan.move).toEqual({ from: 'DP-6', to: 'eDP-1' });
+        expect(plan.evacuate).toEqual([{ id: 3, edid: 'EDID:LAP:1', connector: 'eDP-1' }]);
+        expect(plan.restore).toEqual([]);
+    });
+
+    it('keeps evacuated windows away from the primary and restores them once it is secondary again', () => {
+        const state = new TilingState();
+        state.place(1, 1, location(1, 'eDP-1'), Mode.TILED);
+        state.place(3, 3, location(1, 'eDP-1'), Mode.TILED);
+        state.evacuate(3, 'EDID:LAP:1', 'eDP-1');
+
+        const external = monitor('DP-2', 2, 2000);
+        expect(planHotplug(state.view(), undocked, new Topology([asPrimary(laptop), external]), FOLLOW)).toEqual({
+            evacuate: [],
+            restore: [],
+            move: null,
+        });
+
+        const plan = planHotplug(state.view(), undocked, docked, FOLLOW);
+        expect(plan.move).toEqual({ from: 'eDP-1', to: 'DP-6' });
+        expect(plan.restore).toEqual([{ id: 3, monitorId: 'eDP-1' }]);
+        expect(plan.evacuate).toEqual([]);
+    });
+
+    it('follows the primary to a different physical monitor, but restores secondaries only by EDID', () => {
+        const state = new TilingState();
+        state.place(1, 1, location(1, 'eDP-1'), Mode.TILED);
+        state.place(4, 4, location(1, 'DP-7'), Mode.TILED);
+        state.evacuate(4, 'EDID:HOMESIDE:1', 'DP-7');
+        const plan = planHotplug(state.view(), undocked, new Topology([laptop, office, monitor('DP-7', 2, 2000)]), FOLLOW);
+        expect(plan.move).toEqual({ from: 'eDP-1', to: 'DP-6' });
+        expect(plan.restore).toEqual([]);
+    });
+
+    it('evacuates a vanished secondary as before while the primary stays', () => {
+        const state = new TilingState();
+        state.place(1, 1, location(1, 'eDP-1'), Mode.TILED);
+        state.place(2, 2, location(1, 'DP-2'), Mode.TILED);
+        const before = new Topology([asPrimary(laptop), monitor('DP-2', 1, 1000, { edid: 'EDID:SIDE:1' })]);
+        const plan = planHotplug(state.view(), before, undocked, FOLLOW);
+        expect(plan.move).toBeNull();
+        expect(plan.evacuate).toEqual([{ id: 2, edid: 'EDID:SIDE:1', connector: 'DP-2' }]);
+    });
+
+    it('treats a primary changed in the display settings like a hotplug', () => {
+        const swapped = new Topology([asPrimary(laptop), { ...home, primary: false }]);
+        const plan = planHotplug(dockedState().view(), docked, swapped, FOLLOW);
+        expect(plan.move).toEqual({ from: 'DP-6', to: 'eDP-1' });
+        expect(plan.evacuate.map((e) => e.id)).toEqual([3]);
+    });
+
+    it('moves nothing under RESTORE_BY_MONITOR', () => {
+        const plan = planHotplug(dockedState().view(), docked, undocked);
+        expect(plan.move).toBeNull();
+        expect(plan.evacuate.map((e) => e.id)).toEqual([1, 2]);
     });
 });
 

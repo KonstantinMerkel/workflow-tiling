@@ -146,6 +146,44 @@ Object.assign(ShortcutRow.prototype, ShortcutRowMixin);
 
 // Layout editor pages live in prefs/
 export default class WorkflowTilingPreferences extends ExtensionPreferences {
+    /** Docking behaviour; only relevant for setups whose monitors change. */
+    _buildMonitorsPage(settings) {
+        const monitorsPage = new Adw.PreferencesPage({ title: 'Monitors', icon_name: 'video-display-symbolic' });
+        const group = new Adw.PreferencesGroup({
+            title: 'When Monitors Change',
+            description: 'Applies when docking, undocking or changing the primary display',
+        });
+        const policies = [
+            {
+                value: 'restore-by-monitor',
+                label: 'Windows stay with their monitor',
+                subtitle: 'Windows of a disconnected monitor are minimized and return when it is reconnected',
+            },
+            {
+                value: 'follow-primary',
+                label: 'Windows follow the primary monitor',
+                subtitle:
+                    'The primary monitor\'s windows move to the new primary; its own windows are minimized ' +
+                    'until it is secondary again',
+            },
+        ];
+        const policyRow = new Adw.ComboRow({
+            title: 'Window Placement',
+            model: Gtk.StringList.new(policies.map((p) => p.label)),
+        });
+        const current = policies.findIndex((p) => p.value === settings.get_string('hotplug-policy'));
+        policyRow.selected = Math.max(0, current);
+        policyRow.subtitle = policies[policyRow.selected].subtitle;
+        policyRow.connect('notify::selected', () => {
+            const policy = policies[policyRow.selected] ?? policies[0];
+            policyRow.subtitle = policy.subtitle;
+            settings.set_string('hotplug-policy', policy.value);
+        });
+        group.add(policyRow);
+        monitorsPage.add(group);
+        return monitorsPage;
+    }
+
     fillPreferencesWindow(window) {
         const settings = this.getSettings('org.gnome.shell.extensions.workflow-tiling');
 
@@ -392,6 +430,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
         window.add(page);
         window.add(shortcutsPage);
         window.add(buildMaximizePage(settings));
+        window.add(this._buildMonitorsPage(settings));
 
         // --- Custom Layouts (JSON debug) Page ---
         const layoutPage = new LayoutEditorPage(settings);

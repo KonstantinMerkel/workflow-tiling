@@ -19,7 +19,8 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
         'self-maximize-allow-list': ['firefox'],
         'self-maximize-block-list': ['libreoffice'],
         'maximize-focus-policy': 'unmaximize',
-        'hide-maximize-button': false
+        'hide-maximize-button': false,
+        'hotplug-policy': 'restore-by-monitor'
     };
 
     const mockListeners = {};
@@ -340,6 +341,7 @@ describe('WorkflowTilingPreferences', () => {
         mockSettingsStore['self-maximize-allow-list'] = ['firefox'];
         mockSettingsStore['self-maximize-block-list'] = ['libreoffice'];
         mockSettingsStore['maximize-focus-policy'] = 'unmaximize';
+        mockSettingsStore['hotplug-policy'] = 'restore-by-monitor';
         mockSettingsStore['shortcut-close-monitor'] = [];
         mockSettingsStore['close-monitor-include-minimized'] = false;
 
@@ -365,6 +367,7 @@ describe('WorkflowTilingPreferences', () => {
         const titles = addedPages.map(p => p.title);
         expect(titles).toContain('General');
         expect(titles).toContain('Keyboard Shortcuts');
+        expect(titles).toContain('Monitors');
         expect(titles).toContain('Maximizing');
         expect(titles).toContain('Layouts');
     });
@@ -414,6 +417,20 @@ describe('WorkflowTilingPreferences', () => {
             expect(mockSettingsStore['maximize-focus-policy']).toBe('pass-on');
             expect(focusRow.subtitle).toContain('maximized instead');
         });
+    });
+
+    it('should store the monitor change policy chosen on the Monitors page', () => {
+        mockSettingsStore['hotplug-policy'] = 'follow-primary';
+        prefs.fillPreferencesWindow(mockWindow);
+        const monitorsPage = addedPages.find(p => p.title === 'Monitors');
+        const policyRow = monitorsPage.groups[0].rows.find(r => r instanceof mockAdw.ComboRow);
+        expect(policyRow.selected).toBe(1);
+        expect(policyRow.subtitle).toContain('move to the new primary');
+
+        policyRow.selected = 0;
+        policyRow.emit('notify::selected');
+        expect(mockSettingsStore['hotplug-policy']).toBe('restore-by-monitor');
+        expect(policyRow.subtitle).toContain('return when it is reconnected');
     });
 
     it('should place Gaps and Debug groups in General page', () => {
