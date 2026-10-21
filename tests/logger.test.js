@@ -88,6 +88,7 @@ describe('GSettingsConfigSource debug logging sync', () => {
             get_boolean: (key) => mockSettings[key] ?? false,
             get_int: () => 0,
             get_string: (key) => mockSettings[key] ?? '',
+            get_strv: () => [],
             connect: (signal, cb) => {
                 listeners[signal] = cb;
                 return signal;

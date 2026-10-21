@@ -15,8 +15,13 @@ export const DEFAULT_LAYOUTS = JSON.stringify({
     ],
 });
 
-export function makeConfig(layouts = DEFAULT_LAYOUTS, gaps = { inner: 0, outer: 0 }) {
-    return { gaps, escalator: LayoutParser.parse(layouts), debug: false };
+export const DEFAULT_SELF_MAXIMIZE = { mode: 'never', allowList: [], blockList: [] };
+
+export function makeConfig(
+    layouts = DEFAULT_LAYOUTS,
+    { gaps = { inner: 0, outer: 0 }, selfMaximize = DEFAULT_SELF_MAXIMIZE, focusPolicy = 'unmaximize' } = {},
+) {
+    return { gaps, escalator: LayoutParser.parse(layouts), selfMaximize, focusPolicy, debug: false };
 }
 
 export function monitor(id, index, x, { primary = false, width = 1000, height = 1000, edid = null } = {}) {
@@ -106,8 +111,10 @@ export class FakeWindowPort {
             monitorIndex: 0,
             minimized: false,
             maximized: false,
+            maximizedFully: false,
             fullscreen: false,
             frame: { x: 0, y: 0, width: 10, height: 10 },
+            app: { appId: null, wmClass: null },
             ...overrides,
         };
         this.windows.set(id, facts);
@@ -156,12 +163,19 @@ export class FakeWindowPort {
         if (this.windows.has(id)) this.windows.get(id).workspace = key;
     }
 
+    /** `onSetMode(id, facts)` runs between the two steps of a mode command, as Mutter's notifications do. */
     setMode(id, mode) {
         this._record('setMode', id, mode);
         const f = this.windows.get(id);
         if (!f) return;
-        f.maximized = mode === 'maximized';
         f.fullscreen = mode === 'fullscreen';
+        this.onSetMode?.(id, this.facts(id));
+        f.maximized = mode === 'maximized';
+        f.maximizedFully = f.maximized;
+    }
+
+    appOf(id) {
+        return this.windows.get(id)?.app ?? null;
     }
 
     toggleNative(id, kind) {

@@ -8,6 +8,7 @@ import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/
 import { Logger } from './lib/utils/logger.js';
 import { LayoutPreviewPage } from './prefs/preview.js';
 import { LayoutEditorPage } from './prefs/editor.js';
+import { buildMaximizePage } from './prefs/maximize.js';
 
 const ShortcutRowMixin = {
     _recordShortcut() {
@@ -390,6 +391,7 @@ export default class WorkflowTilingPreferences extends ExtensionPreferences {
 
         window.add(page);
         window.add(shortcutsPage);
+        window.add(buildMaximizePage(settings));
 
         // --- Custom Layouts (JSON debug) Page ---
         const layoutPage = new LayoutEditorPage(settings);
