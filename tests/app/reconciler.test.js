@@ -49,6 +49,33 @@ describe('Reconciler', () => {
         expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([FULL]);
     });
 
+    it('requests once more when the answer lands at another position', () => {
+        const { display, windows, state, reconciler } = setup();
+        windows.constrain = () => ({ ...OLD });
+        windows.add(1);
+        state.place(1, 1, LOC, Mode.TILED);
+        reconciler.markDirty(LOC);
+        display.flushLaters(); // follow-up pass settles provisionally on the old frame
+
+        // the answer has the requested size, but the position of an unmaximize that raced the request
+        windows.set(1, { frame: { ...FULL, x: 37 } });
+        expect(reconciler.noteFrameChanged(1, true)).toBe(false); // needs a pass
+        windows.constrain = (frame) => ({ ...frame, x: 37 }); // Mutter keeps the window there
+        reconciler.markDirty(LOC);
+        display.flushLaters();
+        expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([FULL, FULL]);
+
+        reconciler.markDirty(LOC); // the repeat landed at the same position: left alone
+        display.flushLaters();
+        expect(windows.callsOf('setFrame')).toHaveLength(2);
+
+        windows.constrain = (frame) => frame;
+        windows.set(1, { frame: { ...FULL, x: 99 } }); // a later move by someone else is still reverted
+        reconciler.markDirty(LOC);
+        display.flushLaters();
+        expect(windows.facts(1).frame).toEqual(FULL);
+    });
+
     it('reverts a size change that follows the answer', () => {
         const { display, windows, state, reconciler } = setup();
         windows.constrain = () => ({ ...OLD });
