@@ -89,6 +89,7 @@ describe('GSettingsConfigSource', () => {
         'outer-gaps': 4,
         'debug-logging': false,
         'custom-layouts': DEFAULT_LAYOUTS,
+        'hotplug-policy': 'follow-primary',
     };
 
     it('builds a config snapshot and keeps the last valid one on invalid JSON', () => {
@@ -96,6 +97,7 @@ describe('GSettingsConfigSource', () => {
         const source = new GSettingsConfigSource(settings);
         expect(source.isValid()).toBe(true);
         expect(source.current().gaps).toEqual({ inner: 6, outer: 4 });
+        expect(source.current().hotplugPolicy).toBe('follow-primary');
         const valid = source.current();
 
         const invalid = vi.fn();

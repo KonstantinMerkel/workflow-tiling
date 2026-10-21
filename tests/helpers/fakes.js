@@ -19,9 +19,11 @@ export const DEFAULT_SELF_MAXIMIZE = { mode: 'never', allowList: [], blockList: 
 
 export function makeConfig(
     layouts = DEFAULT_LAYOUTS,
-    { gaps = { inner: 0, outer: 0 }, selfMaximize = DEFAULT_SELF_MAXIMIZE, focusPolicy = 'unmaximize' } = {},
+    { gaps = { inner: 0, outer: 0 }, selfMaximize = DEFAULT_SELF_MAXIMIZE, focusPolicy = 'unmaximize',
+        hotplugPolicy = 'restore-by-monitor',
+    } = {},
 ) {
-    return { gaps, escalator: LayoutParser.parse(layouts), selfMaximize, focusPolicy, debug: false };
+    return { gaps, escalator: LayoutParser.parse(layouts), selfMaximize, focusPolicy, hotplugPolicy, debug: false };
 }
 
 export function monitor(id, index, x, { primary = false, width = 1000, height = 1000, edid = null } = {}) {

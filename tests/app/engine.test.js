@@ -14,14 +14,14 @@ const LEFT_HALF = { x: 0, y: 0, width: 500, height: 1000 };
 const RIGHT_HALF = { x: 500, y: 0, width: 500, height: 1000 };
 const FULL = { x: 0, y: 0, width: 1000, height: 1000 };
 
-function setup({ monitors, onlyPrimary = false, layouts = DEFAULT_LAYOUTS, selfMaximize, focusPolicy } = {}) {
+function setup({ monitors, onlyPrimary = false, layouts = DEFAULT_LAYOUTS, selfMaximize, focusPolicy, hotplugPolicy } = {}) {
     const display = new FakeDisplayPort(
         monitors ?? [monitor('DP-1', 0, 0, { primary: true }), monitor('DP-2', 1, 1000)],
         { workspacesOnlyOnPrimary: onlyPrimary },
     );
     const windows = new FakeWindowPort(display);
     const indicator = new FakeIndicator();
-    const config = makeConfig(layouts, { selfMaximize, focusPolicy });
+    const config = makeConfig(layouts, { selfMaximize, focusPolicy, hotplugPolicy });
     const engine = new Engine({ windowPort: windows, displayPort: display, indicator, config });
     const open = (id, overrides = {}) => {
         windows.add(id, overrides);
@@ -332,6 +332,52 @@ describe('hotplug', () => {
         engine.onMinimizedChanged(windows.set(1, { minimized: false }));
         display.flushLaters();
         expect(engine.state.record(1)).toMatchObject({ location: DP1, evacuated: null, mode: Mode.TILED });
+    });
+
+    it('follows the primary monitor through undock and redock', () => {
+        const laptop = monitor('eDP-1', 0, 0);
+        const external = monitor('DP-6', 1, 1000, { primary: true });
+        const { windows, engine, display, open } = setup({ monitors: [laptop, external], hotplugPolicy: 'follow-primary' });
+        const onExternal = { monitor: 'DP-6', monitorIndex: 1 };
+        open(1, onExternal);
+        open(2, onExternal);
+        open(3);
+        const LAPTOP = location(1, 'eDP-1');
+        const EXTERNAL = location(1, 'DP-6');
+
+        engine.onTopologyChanging();
+        display.monitors = [{ ...laptop, primary: true }];
+        engine.onTopologyChanged();
+        display.flushLaters();
+        expect(engine.state.slotsAt(LAPTOP)).toEqual([1, 2]);
+        expect(windows.facts(1)).toMatchObject({ monitor: 'eDP-1', frame: LEFT_HALF });
+        expect(engine.state.record(3).evacuated).toMatchObject({ connector: 'eDP-1', slot: 0 });
+        expect(windows.facts(3).minimized).toBe(true);
+
+        open(4); // opened while undocked: a primary window
+        expect(engine.state.slotsAt(LAPTOP)).toEqual([1, 2, 4]);
+
+        engine.onTopologyChanging();
+        display.monitors = [laptop, external];
+        engine.onTopologyChanged();
+        display.flushLaters();
+        expect(engine.state.slotsAt(EXTERNAL)).toEqual([1, 2, 4]);
+        expect(engine.state.slotsAt(LAPTOP)).toEqual([3]);
+        expect(windows.facts(4).monitor).toBe('DP-6');
+        expect(windows.facts(3)).toMatchObject({ monitor: 'eDP-1', minimized: false, frame: FULL });
+    });
+
+    it('re-keys monitors whose primary role changed with workspaces-only-on-primary', () => {
+        const { engine, display, open } = setup({ onlyPrimary: true });
+        open(1);
+        open(2, { monitor: 'DP-2', monitorIndex: 1, workspace: ALL_WORKSPACES });
+        engine.onTopologyChanging();
+        display.monitors = display.monitors.map((m) => ({ ...m, primary: m.id === 'DP-2' }));
+        engine.onTopologyChanged();
+        display.flushLaters();
+        expect(engine.state.slotsAt(location(ALL_WORKSPACES, 'DP-1'))).toEqual([1]);
+        expect(engine.state.slotsAt(location(1, 'DP-2'))).toEqual([2]);
+        expect(engine.state.slotsAt(DP1)).toEqual([]);
     });
 
     it('keeps ignoring window moves until the first flush after the change', () => {
