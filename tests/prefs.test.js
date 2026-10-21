@@ -14,7 +14,12 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
         'shortcut-switch-monitor': [],
         'shortcut-unminimize-workspace': [],
         'debug-logging': false,
-        'custom-layouts': '{}'
+        'custom-layouts': '{}',
+        'self-maximize-mode': 'allow-listed',
+        'self-maximize-allow-list': ['firefox'],
+        'self-maximize-block-list': ['libreoffice'],
+        'maximize-focus-policy': 'unmaximize',
+        'hide-maximize-button': false
     };
 
     const mockListeners = {};
@@ -52,7 +57,10 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
                 mockListeners[signal] = [];
             }
             mockListeners[signal].push(callback);
-            return signal;
+            return { signal, callback };
+        },
+        disconnect: ({ signal, callback }) => {
+            mockListeners[signal] = (mockListeners[signal] ?? []).filter((cb) => cb !== callback);
         }
     };
 
@@ -108,6 +116,12 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
         }
         add(row) {
             this.rows.push(row);
+        }
+        remove(row) {
+            this.rows = this.rows.filter((r) => r !== row);
+        }
+        set_header_suffix(widget) {
+            this.headerSuffix = widget;
         }
     }
 
@@ -176,7 +190,12 @@ vi.mock('gi://Gio', () => ({
         },
         SettingsBindFlags: {
             DEFAULT: 0
-        }
+        },
+        AppInfo: {
+            get_all: () => [
+                { get_id: () => 'firefox.desktop', get_display_name: () => 'Firefox', get_icon: () => null, should_show: () => true },
+            ],
+        },
     }
 }));
 
@@ -187,6 +206,7 @@ vi.mock('gi://Adw', () => ({
 vi.mock('gi://Gtk', () => ({
     default: {
         Adjustment: class {},
+        Button: class extends BaseMockWidget {},
         Align: {
             CENTER: 0,
             START: 1,
@@ -316,6 +336,10 @@ describe('WorkflowTilingPreferences', () => {
         mockSettingsStore['outer-gaps'] = 4;
         mockSettingsStore['keybindings-mode'] = 'default';
         mockSettingsStore['focus-window-mode'] = 'default';
+        mockSettingsStore['self-maximize-mode'] = 'allow-listed';
+        mockSettingsStore['self-maximize-allow-list'] = ['firefox'];
+        mockSettingsStore['self-maximize-block-list'] = ['libreoffice'];
+        mockSettingsStore['maximize-focus-policy'] = 'unmaximize';
         mockSettingsStore['shortcut-close-monitor'] = [];
         mockSettingsStore['close-monitor-include-minimized'] = false;
 
@@ -341,7 +365,55 @@ describe('WorkflowTilingPreferences', () => {
         const titles = addedPages.map(p => p.title);
         expect(titles).toContain('General');
         expect(titles).toContain('Keyboard Shortcuts');
+        expect(titles).toContain('Maximizing');
         expect(titles).toContain('Layouts');
+    });
+
+    describe('Maximizing page', () => {
+        let page;
+        beforeEach(() => {
+            prefs.fillPreferencesWindow(mockWindow);
+            page = addedPages.find(p => p.title === 'Maximizing');
+        });
+        const group = (title) => page.groups.find(g => g.title === title);
+
+        it('shows only the list of the active mode', () => {
+            expect(group('Allowed Apps').visible).toBe(true);
+            expect(group('Blocked Apps').visible).toBe(false);
+            const modeRow = group('Apps Maximizing Themselves').rows[0];
+            modeRow.selected = 2;
+            modeRow.emit('notify::selected');
+            expect(mockSettingsStore['self-maximize-mode']).toBe('all-except-listed');
+            expect(group('Allowed Apps').visible).toBe(false);
+            expect(group('Blocked Apps').visible).toBe(true);
+            modeRow.selected = 0;
+            modeRow.emit('notify::selected');
+            expect(group('Blocked Apps').visible).toBe(false);
+        });
+
+        it('lists entries with installed app names and removes them', () => {
+            const allowed = group('Allowed Apps');
+            expect(allowed.rows.map(r => [r.title, r.subtitle])).toEqual([['Firefox', 'firefox']]);
+            allowed.rows[0].suffixes[0].emit('clicked');
+            expect(mockSettingsStore['self-maximize-allow-list']).toEqual([]);
+            expect(allowed.rows).toEqual([]);
+        });
+
+        it('disconnects its settings listeners when the page is destroyed', () => {
+            const allowed = group('Allowed Apps');
+            page.emit('destroy');
+            mockSettings.set_strv('self-maximize-allow-list', ['firefox', 'org.gnome.epiphany']);
+            expect(allowed.rows).toHaveLength(1);
+        });
+
+        it('stores the focus policy', () => {
+            const focusRow = group('When Another Window Comes Forward').rows[0];
+            expect(focusRow.selected).toBe(1);
+            focusRow.selected = 2;
+            focusRow.emit('notify::selected');
+            expect(mockSettingsStore['maximize-focus-policy']).toBe('pass-on');
+            expect(focusRow.subtitle).toContain('maximized instead');
+        });
     });
 
     it('should place Gaps and Debug groups in General page', () => {

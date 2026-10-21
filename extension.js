@@ -9,6 +9,7 @@ import { MutterWindowPort } from './lib/shell/window-port.js';
 import { ShellEvents } from './lib/shell/shell-events.js';
 import { KeybindingAdapter } from './lib/shell/keybindings.js';
 import { StIndicator } from './lib/shell/st-indicator.js';
+import { MaximizeButtonHider } from './lib/shell/button-layout.js';
 
 /**
  * Composition root: creates every Shell object and the Engine, and destroys them in reverse order.
@@ -21,6 +22,8 @@ export default class WorkflowTilingExtension extends Extension {
         this._configSource.onConfigChanged((config) => this._onConfigChanged(config));
         this._configSource.onConfigInvalid((error) => this._suspend(error));
         this._configSource.onKeybindingsChanged(() => this._keybindings?.rebindAll());
+        this._buttonHider = new MaximizeButtonHider(this._settings);
+        this._buttonHider.enable();
 
         this._displayPort = new MutterDisplayPort();
         this._windowPort = new MutterWindowPort(this._displayPort, Number(Config.PACKAGE_VERSION.split('.')[0]));
@@ -48,6 +51,7 @@ export default class WorkflowTilingExtension extends Extension {
         this._windowPort?.destroy();
         this._displayPort?.destroy();
         this._configSource?.destroy();
+        this._buttonHider?.disable();
 
         this._keybindings = null;
         this._events = null;
@@ -56,6 +60,7 @@ export default class WorkflowTilingExtension extends Extension {
         this._windowPort = null;
         this._displayPort = null;
         this._configSource = null;
+        this._buttonHider = null;
         this._settings = null;
         this._suspended = false;
     }

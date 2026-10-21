@@ -3,6 +3,7 @@ import Meta from 'gi://Meta';
 import { classifyGrab, ShellEvents } from '../../lib/shell/shell-events.js';
 import { GSettingsConfigSource } from '../../lib/shell/config-source.js';
 import { MutterWindowPort } from '../../lib/shell/window-port.js';
+import { MaximizeButtonHider, withoutMaximize } from '../../lib/shell/button-layout.js';
 import { MutterDisplayPort } from '../../lib/shell/display-port.js';
 import { ShadowManager } from '../../lib/shell/shadows.js';
 import { KeybindingAdapter } from '../../lib/shell/keybindings.js';
@@ -25,7 +26,7 @@ function fakeSettings(values) {
             (listeners[signal] ??= []).push(cb);
             return signal;
         },
-        disconnect: vi.fn(),
+        disconnect: vi.fn((id) => delete listeners[id]),
         emit: (key) => (listeners[`changed::${key}`] ?? []).forEach((cb) => cb()),
     };
 }
@@ -55,6 +56,7 @@ function fakeWindow(id, overrides = {}) {
         maximized_horizontally: false,
         maximized_vertically: false,
         is_fullscreen: () => false,
+        is_maximized: () => false,
         allows_resize: () => true,
         get_frame_rect: () => ({ x: 1, y: 2, width: 3, height: 4 }),
         move_resize_frame: vi.fn(),
@@ -378,5 +380,71 @@ describe('KeybindingAdapter', () => {
 
         adapter.suspend();
         expect(Meta.keybindings_set_custom_handler).toHaveBeenLastCalledWith(expect.any(String), null);
+    });
+});
+
+describe('MaximizeButtonHider', () => {
+    const LAYOUT = 'appmenu:minimize,maximize,close';
+    const setup = (hide, saved = '') => {
+        const settings = fakeSettings({ 'hide-maximize-button': hide, 'saved-button-layout': saved });
+        const wm = fakeSettings({ 'button-layout': LAYOUT });
+        wm.set_string = vi.fn((k, v) => {
+            wm.store[k] = v;
+            wm.emit(k);
+        });
+        return { settings, wm, hider: new MaximizeButtonHider(settings, wm) };
+    };
+
+    it('removes only the maximize button', () => {
+        expect(withoutMaximize(LAYOUT)).toBe('appmenu:minimize,close');
+        expect(withoutMaximize('close,maximize:')).toBe('close:');
+        expect(withoutMaximize('appmenu:close')).toBe('appmenu:close');
+    });
+
+    it('hides while enabled and restores the original on disable', () => {
+        const { settings, wm, hider } = setup(true);
+        hider.enable();
+        expect(wm.store['button-layout']).toBe('appmenu:minimize,close');
+        expect(settings.store['saved-button-layout']).toBe(LAYOUT);
+        hider.disable();
+        expect(wm.store['button-layout']).toBe(LAYOUT);
+        expect(settings.store['saved-button-layout']).toBe('');
+    });
+
+    it('follows the toggle and keeps a layout the user sets while hidden', () => {
+        const { settings, wm, hider } = setup(false);
+        hider.enable();
+        expect(wm.store['button-layout']).toBe(LAYOUT);
+        settings.store['hide-maximize-button'] = true;
+        settings.emit('hide-maximize-button');
+        expect(wm.store['button-layout']).toBe('appmenu:minimize,close');
+
+        wm.set_string('button-layout', 'close,maximize:');
+        expect(wm.store['button-layout']).toBe('close:');
+        expect(settings.store['saved-button-layout']).toBe('close,maximize:');
+    });
+
+    it('keeps a layout without maximize button set while hidden', () => {
+        const { settings, wm, hider } = setup(true);
+        hider.enable();
+        wm.set_string('button-layout', 'close:');
+        expect(settings.store['saved-button-layout']).toBe('close:');
+        hider.disable();
+        expect(wm.store['button-layout']).toBe('close:');
+    });
+
+    it('takes a value equal to its own earlier write as the user\'s once the echo has passed', () => {
+        const { settings, wm, hider } = setup(true);
+        hider.enable(); // writes 'appmenu:minimize,close'
+        wm.set_string('button-layout', 'appmenu:minimize,close');
+        expect(settings.store['saved-button-layout']).toBe('appmenu:minimize,close');
+    });
+
+    it('restores a layout left over by a crash once hiding is off', () => {
+        const { settings, wm, hider } = setup(false, LAYOUT);
+        wm.store['button-layout'] = 'appmenu:minimize,close';
+        hider.enable();
+        expect(wm.store['button-layout']).toBe(LAYOUT);
+        expect(settings.store['saved-button-layout']).toBe('');
     });
 });

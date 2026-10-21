@@ -17,6 +17,47 @@
       <description>Enable verbose debug logging in system logs.</description>
     </key>
 
+    <key name="self-maximize-mode" type="s">
+      <choices>
+        <choice value="never"/>
+        <choice value="allow-listed"/>
+        <choice value="all-except-listed"/>
+      </choices>
+      <default>'allow-listed'</default>
+      <summary>Self-Maximization</summary>
+      <description>Which apps may maximize or fullscreen their tiled windows themselves (title bar, F11, starting maximized). 'never', 'allow-listed' (only apps in self-maximize-allow-list) or 'all-except-listed' (all apps except those in self-maximize-block-list).</description>
+    </key>
+    <key name="self-maximize-allow-list" type="as">
+      <default>['firefox', 'org.mozilla.firefox', 'firefox-esr', 'librewolf', 'io.gitlab.librewolf-community', 'app.zen_browser.zen', 'chromium', 'chromium-browser', 'org.chromium.Chromium', 'google-chrome', 'com.google.Chrome', 'brave-browser', 'com.brave.Browser', 'microsoft-edge', 'com.microsoft.Edge', 'vivaldi-stable', 'com.vivaldi.Vivaldi', 'opera', 'com.opera.Opera', 'org.gnome.Epiphany']</default>
+      <summary>Apps Allowed to Maximize Themselves</summary>
+      <description>App ids or WM classes, without .desktop. An entry also covers ids continuing it after '.' or '-'.</description>
+    </key>
+    <key name="self-maximize-block-list" type="as">
+      <default>['libreoffice-startcenter', 'libreoffice-writer', 'libreoffice-calc', 'libreoffice-impress', 'libreoffice-draw', 'libreoffice-math', 'libreoffice-base', 'org.libreoffice.LibreOffice', 'com.orcaslicer.OrcaSlicer']</default>
+      <summary>Apps Not Allowed to Maximize Themselves</summary>
+      <description>App ids or WM classes, without .desktop. An entry also covers ids continuing it after '.' or '-'.</description>
+    </key>
+    <key name="maximize-focus-policy" type="s">
+      <choices>
+        <choice value="keep"/>
+        <choice value="unmaximize"/>
+        <choice value="pass-on"/>
+      </choices>
+      <default>'unmaximize'</default>
+      <summary>Maximized Window When Another Comes Forward</summary>
+      <description>What happens to a maximized or fullscreen tiled window when another window of its layout gains focus or opens: 'keep', 'unmaximize' or 'pass-on' (the other window takes the maximization over).</description>
+    </key>
+    <key name="hide-maximize-button" type="b">
+      <default>false</default>
+      <summary>Hide Maximize Button</summary>
+      <description>Removes the maximize button from window title bars of all apps while the extension is enabled.</description>
+    </key>
+    <key name="saved-button-layout" type="s">
+      <default>''</default>
+      <summary>Saved Button Layout</summary>
+      <description>Internal: the original org.gnome.desktop.wm.preferences button-layout while the maximize button is hidden.</description>
+    </key>
+
     <key name="keybindings-mode" type="s">
       <default>'default'</default>
       <summary>Keybindings Mode</summary>

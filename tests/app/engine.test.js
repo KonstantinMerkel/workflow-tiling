@@ -14,14 +14,15 @@ const LEFT_HALF = { x: 0, y: 0, width: 500, height: 1000 };
 const RIGHT_HALF = { x: 500, y: 0, width: 500, height: 1000 };
 const FULL = { x: 0, y: 0, width: 1000, height: 1000 };
 
-function setup({ monitors, onlyPrimary = false, layouts = DEFAULT_LAYOUTS } = {}) {
+function setup({ monitors, onlyPrimary = false, layouts = DEFAULT_LAYOUTS, selfMaximize, focusPolicy } = {}) {
     const display = new FakeDisplayPort(
         monitors ?? [monitor('DP-1', 0, 0, { primary: true }), monitor('DP-2', 1, 1000)],
         { workspacesOnlyOnPrimary: onlyPrimary },
     );
     const windows = new FakeWindowPort(display);
     const indicator = new FakeIndicator();
-    const engine = new Engine({ windowPort: windows, displayPort: display, indicator, config: makeConfig(layouts) });
+    const config = makeConfig(layouts, { selfMaximize, focusPolicy });
+    const engine = new Engine({ windowPort: windows, displayPort: display, indicator, config });
     const open = (id, overrides = {}) => {
         windows.add(id, overrides);
         engine.onWindowAppeared(windows.facts(id));
@@ -477,7 +478,7 @@ describe('drag', () => {
         display.flushLaters();
         engine.onGrabBegin(1, 'move');
         expect(engine.state.record(1).mode).toBe(Mode.TILED);
-        engine.onModeChanged(windows.set(1, { maximized: false })); // Mutter unmaximizes on drag
+        engine.onModeChanged(windows.set(1, { maximized: false, maximizedFully: false })); // Mutter unmaximizes on drag
         engine.onGrabEnd(1, 'move');
         display.flushLaters();
         expect(windows.facts(1)).toMatchObject({ maximized: false, frame: LEFT_HALF });
@@ -562,5 +563,174 @@ describe('drag', () => {
         engine.onGrabEnd(1, 'resize');
         display.flushLaters();
         expect(windows.facts(1).frame).toEqual(FULL);
+    });
+});
+
+describe('maximization', () => {
+    const FIREFOX = { appId: 'firefox.desktop', wmClass: 'firefox' };
+    const allowFirefox = { mode: 'allow-listed', allowList: ['firefox'], blockList: [] };
+    const MAXIMIZED_FACTS = { maximized: true, maximizedFully: true };
+
+    it('unmaximizes with Super+Down and never maximizes with it', () => {
+        const { engine, display, open } = setup();
+        open(1);
+        engine.toggleOverride(1, 'unmaximize');
+        expect(engine.state.record(1).mode).toBe(Mode.TILED);
+        engine.toggleOverride(1, 'maximize');
+        display.flushLaters();
+        engine.toggleOverride(1, 'unmaximize');
+        expect(engine.state.record(1).mode).toBe(Mode.TILED);
+    });
+
+    it('keeps a self-maximization of an allowed app and reverts the others', () => {
+        const { windows, engine, display, open } = setup({ selfMaximize: allowFirefox });
+        open(1, { app: FIREFOX });
+        open(2);
+        engine.onModeChanged(windows.set(1, MAXIMIZED_FACTS));
+        engine.onModeChanged(windows.set(2, MAXIMIZED_FACTS));
+        display.flushLaters();
+        expect(engine.state.record(1).mode).toBe(Mode.MAXIMIZED);
+        expect(windows.facts(1).maximized).toBe(true);
+        expect(engine.state.record(2).mode).toBe(Mode.TILED);
+        expect(windows.facts(2).maximized).toBe(false);
+
+        engine.onModeChanged(windows.set(1, { maximized: false, maximizedFully: false })); // the app unmaximizes
+        expect(engine.state.record(1).mode).toBe(Mode.TILED);
+    });
+
+    it('keeps fullscreen of an allowed app and treats half-tiling as tiled', () => {
+        const { windows, engine, open } = setup({ selfMaximize: allowFirefox });
+        open(1, { app: FIREFOX });
+        engine.onModeChanged(windows.set(1, { fullscreen: true }));
+        expect(engine.state.record(1).mode).toBe(Mode.FULLSCREEN);
+        engine.onModeChanged(windows.set(1, { fullscreen: false, maximized: true, maximizedFully: false }));
+        expect(engine.state.record(1).mode).toBe(Mode.TILED);
+    });
+
+    it('lets an allowed app open maximized', () => {
+        const { engine, open } = setup({ selfMaximize: allowFirefox, focusPolicy: 'keep' });
+        open(1, { app: FIREFOX, ...MAXIMIZED_FACTS });
+        open(2, MAXIMIZED_FACTS);
+        expect(engine.state.record(1).mode).toBe(Mode.MAXIMIZED);
+        expect(engine.state.record(2).mode).toBe(Mode.TILED);
+    });
+
+    it('ignores the intermediate states of its own mode commands', () => {
+        const { windows, engine, display, open } = setup({ selfMaximize: allowFirefox, focusPolicy: 'keep' });
+        open(1, { app: FIREFOX });
+        engine.toggleOverride(1, 'fullscreen');
+        display.flushLaters();
+        windows.set(1, { maximized: true, maximizedFully: true }); // fullscreen on top of a maximization
+        windows.onSetMode = (id, facts) => engine.onModeChanged(facts); // unfullscreened, still maximized
+        engine.toggleOverride(1, 'fullscreen');
+        display.flushLaters();
+        expect(engine.state.record(1).mode).toBe(Mode.TILED);
+        expect(windows.facts(1)).toMatchObject({ maximized: false, fullscreen: false });
+    });
+
+    it('applies the focus policy when another window of the layout gains focus', () => {
+        for (const [policy, expected] of [
+            ['keep', [Mode.MAXIMIZED, Mode.TILED]],
+            ['unmaximize', [Mode.TILED, Mode.TILED]],
+            ['pass-on', [Mode.TILED, Mode.MAXIMIZED]],
+        ]) {
+            const { engine, display, open } = setup({ focusPolicy: policy });
+            open(1);
+            open(2);
+            engine.toggleOverride(1, 'maximize');
+            display.flushLaters();
+            engine.onFocusChanged(2);
+            expect([engine.state.record(1).mode, engine.state.record(2).mode]).toEqual(expected);
+        }
+    });
+
+    it('keeps one maximized window per layout when another one maximizes', () => {
+        const { windows, engine, display, open } = setup({ selfMaximize: allowFirefox });
+        open(1);
+        open(2, { app: FIREFOX });
+        engine.toggleOverride(1, 'maximize');
+        display.flushLaters();
+        engine.onModeChanged(windows.set(2, { fullscreen: true })); // the browser goes fullscreen itself
+        display.flushLaters();
+        expect([engine.state.record(1).mode, engine.state.record(2).mode]).toEqual([Mode.TILED, Mode.FULLSCREEN]);
+
+        engine.toggleOverride(1, 'maximize'); // and back by shortcut
+        display.flushLaters();
+        expect([engine.state.record(1).mode, engine.state.record(2).mode]).toEqual([Mode.MAXIMIZED, Mode.TILED]);
+    });
+
+    it('corrects half-tiling of a maximized window', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        engine.toggleOverride(1, 'maximize');
+        display.flushLaters();
+        engine.onModeChanged(windows.set(1, { maximized: true, maximizedFully: false })); // half-tiled by Mutter
+        display.flushLaters();
+        expect(windows.facts(1)).toMatchObject({ maximized: true, maximizedFully: true });
+        expect(windows.callsOf('setMode', 1).map((c) => c.arg)).toEqual([Mode.MAXIMIZED, Mode.MAXIMIZED]);
+    });
+
+    it('applies the focus rule only when a request actually changes the mode', () => {
+        const { engine, display, open } = setup({ focusPolicy: 'keep' });
+        open(1);
+        open(2);
+        engine.toggleOverride(1, 'fullscreen');
+        engine.toggleOverride(2, 'maximize');
+        display.flushLaters();
+        engine.config = { ...engine.config, focusPolicy: 'unmaximize' };
+        engine.toggleOverride(1, 'unmaximize'); // Super+Down on the fullscreen window: no change
+        expect([engine.state.record(1).mode, engine.state.record(2).mode]).toEqual([Mode.FULLSCREEN, Mode.MAXIMIZED]);
+    });
+
+    it('keeps the override of a maximized window that was only clicked', () => {
+        const { windows, engine, display, open } = setup({ focusPolicy: 'keep' });
+        open(1);
+        open(2);
+        engine.toggleOverride(1, 'maximize');
+        engine.toggleOverride(2, 'fullscreen');
+        display.flushLaters();
+        engine.config = { ...engine.config, focusPolicy: 'unmaximize' };
+        engine.onGrabBegin(1, 'move'); // a click on the title bar: Mutter never unmaximizes
+        engine.onGrabEnd(1, 'move');
+        display.flushLaters();
+        expect([engine.state.record(1).mode, engine.state.record(2).mode]).toEqual([Mode.MAXIMIZED, Mode.FULLSCREEN]);
+        expect(windows.facts(1).maximizedFully).toBe(true);
+    });
+
+    it('maximizes a maximized window dragged back onto the top edge', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        open(2);
+        engine.toggleOverride(1, 'maximize');
+        display.flushLaters();
+        engine.onGrabBegin(1, 'move');
+        engine.onModeChanged(windows.set(1, { maximized: false, maximizedFully: false })); // dragged loose
+        engine.onModeChanged(windows.set(1, MAXIMIZED_FACTS)); // dropped on the top edge
+        engine.onGrabEnd(1, 'move');
+        display.flushLaters();
+        expect(engine.state.record(1).mode).toBe(Mode.MAXIMIZED);
+    });
+
+    it('applies the focus policy to arrivals', () => {
+        const { engine, display, open } = setup({ focusPolicy: 'pass-on' });
+        open(1);
+        engine.toggleOverride(1, 'maximize');
+        display.flushLaters();
+        open(2);
+        expect([engine.state.record(1).mode, engine.state.record(2).mode]).toEqual([Mode.TILED, Mode.MAXIMIZED]);
+    });
+
+    it('maximizes a tile dropped on the top screen edge instead of swapping it', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        open(2);
+        engine.onGrabBegin(1, 'move');
+        engine.onPointerMoved({ x: 750, y: 0 }); // over the neighbour's tile, at the top edge
+        engine.onModeChanged(windows.set(1, MAXIMIZED_FACTS)); // Mutter maximizes before the grab ends
+        engine.onGrabEnd(1, 'move');
+        display.flushLaters();
+        expect(engine.state.slotsAt(DP1)).toEqual([1, 2]);
+        expect(engine.state.record(1).mode).toBe(Mode.MAXIMIZED);
+        expect(windows.facts(1).maximized).toBe(true);
     });
 });
