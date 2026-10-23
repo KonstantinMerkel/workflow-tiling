@@ -184,6 +184,9 @@ describe('MutterWindowPort', () => {
         port.register(fakeWindow(3));
         const size = { width: 3, height: 4 };
         expect(port.facts(1).sizeLimits).toEqual({ min: size, max: size });
+
+        port.register(fakeWindow(4, { allows_resize: () => false, get_frame_rect: () => ({ x: 0, y: 0, width: 0, height: 0 }) }));
+        expect(port.facts(4).sizeLimits).toEqual({ min: null, max: null }); // not on screen yet
         expect(port.facts(2).sizeLimits).toEqual({ min: null, max: null });
         expect(port.facts(3).sizeLimits).toEqual({ min: null, max: null });
     });

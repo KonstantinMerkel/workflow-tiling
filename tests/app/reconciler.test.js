@@ -110,6 +110,15 @@ describe('Reconciler', () => {
         expect(windows.facts(1).frame).toEqual(FULL);
     });
 
+    it('never clamps a request to an empty size', () => {
+        const { display, windows, state, reconciler } = setup();
+        windows.add(1, { sizeLimits: { min: { width: 0, height: 0 }, max: { width: 0, height: 0 } } });
+        state.place(1, 1, LOC, Mode.TILED);
+        reconciler.markDirty(LOC);
+        display.flushLaters();
+        expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([FULL]);
+    });
+
     it('clamps requests to the window size limits', () => {
         const { display, windows, state, reconciler } = setup();
         windows.add(1, { sizeLimits: { min: { width: 1200, height: 100 }, max: { width: 2000, height: 600 } } });
