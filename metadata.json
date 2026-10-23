@@ -1,6 +1,6 @@
 {
   "name": "Workflow Tiling",
-  "description": "A window-tiler with customisable layout escalation. \nSupports: multi-monitor, (un-)docking events, temporary overrides, multitude of keyboard commands",
+  "description": "A window-tiler with customisable layout escalation.\nSupports: multi-monitor, (un-)docking events, temporary overrides, multitude of keyboard commands",
   "uuid": "workflow-tiling@KonstantinMerkel.github.io",
   "url": "https://github.com/KonstantinMerkel/workflow-tiling/",
   "shell-version": [
@@ -8,7 +8,6 @@
     "50"
   ],
   "version-name": "0.2.0-beta",
-  "gettext-domain": "workflow-tiling",
   "session-modes": [
     "user",
     "unlock-dialog"
