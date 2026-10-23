@@ -2,7 +2,7 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { appEntry, withEntry } from '../lib/domain/policies/override/self-maximize.js';
-import { choiceRow } from './rows.js';
+import { choiceRow, pageListener } from './rows.js';
 
 const SELF_MAXIMIZE_MODES = [
     { value: 'never', label: 'Never', subtitle: 'Tiled windows maximize only through the shortcuts' },
@@ -107,9 +107,7 @@ function pickApp(parent, apps, onPicked) {
 /** Preferences page for maximize and fullscreen behaviour of tiled windows. */
 export function buildMaximizePage(settings) {
     const page = new Adw.PreferencesPage({ title: 'Maximizing', icon_name: 'view-fullscreen-symbolic' });
-    const signalIds = [];
-    const listen = (signal, callback) => signalIds.push(settings.connect(signal, callback));
-    page.connect('destroy', () => signalIds.splice(0).forEach((id) => settings.disconnect(id)));
+    const listen = pageListener(page, settings);
     let cachedApps = null;
     const apps = () => (cachedApps ??= installedApps());
 

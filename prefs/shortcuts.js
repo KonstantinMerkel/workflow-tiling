@@ -4,6 +4,7 @@ import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 import { Logger } from '../lib/utils/logger.js';
+import { pageListener } from './rows.js';
 
 const ShortcutRowMixin = {
     _recordShortcut() {
@@ -145,6 +146,7 @@ export function buildShortcutsPage(settings) {
         title: 'Keyboard Shortcuts',
         icon_name: 'input-keyboard-symbolic',
     });
+    const listen = pageListener(shortcutsPage, settings);
 
     const wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.keybindings' });
     const allRows = [];
@@ -237,7 +239,7 @@ export function buildShortcutsPage(settings) {
         const showCustom = mode === 'custom';
         focusRows.forEach((r) => (r.visible = showCustom));
     };
-    settings.connect('changed::focus-window-mode', () => {
+    listen('changed::focus-window-mode', () => {
         updateFocusVisibility();
         updateConflicts();
     });
@@ -275,7 +277,7 @@ export function buildShortcutsPage(settings) {
         const showCustom = mode === 'custom';
         moveRows.forEach((r) => (r.visible = showCustom));
     };
-    settings.connect('changed::keybindings-mode', () => {
+    listen('changed::keybindings-mode', () => {
         updateVisibility();
         updateConflicts();
     });
@@ -314,7 +316,7 @@ export function buildShortcutsPage(settings) {
         const strv = settings.get_strv('shortcut-close-monitor');
         closeMinRow.visible = strv.length > 0 && strv[0] !== '';
     };
-    settings.connect('changed::shortcut-close-monitor', updateCloseMinRowVisibility);
+    listen('changed::shortcut-close-monitor', updateCloseMinRowVisibility);
     updateCloseMinRowVisibility();
     monitorGroup.add(closeMinRow);
 

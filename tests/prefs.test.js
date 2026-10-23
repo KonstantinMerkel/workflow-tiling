@@ -419,6 +419,21 @@ describe('WorkflowTilingPreferences', () => {
         });
     });
 
+    it('disconnects the General and Keyboard Shortcuts listeners when their pages are destroyed', () => {
+        prefs.fillPreferencesWindow(mockWindow);
+        const listeners = (key) => (mockListeners[`changed::${key}`] ?? []).length;
+        // a ShortcutRow keeps its own listener on its key; it is released in vfunc_dispose
+        const closeMonitorListeners = listeners('shortcut-close-monitor');
+
+        addedPages.find(p => p.title === 'General').emit('destroy');
+        addedPages.find(p => p.title === 'Keyboard Shortcuts').emit('destroy');
+
+        expect(listeners('enable-gaps')).toBe(0);
+        expect(listeners('focus-window-mode')).toBe(0);
+        expect(listeners('keybindings-mode')).toBe(0);
+        expect(listeners('shortcut-close-monitor')).toBe(closeMonitorListeners - 1);
+    });
+
     it('should store the monitor change policy chosen on the Monitors page', () => {
         mockSettingsStore['hotplug-policy'] = 'follow-primary';
         prefs.fillPreferencesWindow(mockWindow);

@@ -3,10 +3,12 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 import { Logger } from '../lib/utils/logger.js';
+import { pageListener } from './rows.js';
 
 /** Preferences page for gaps and debugging. */
 export function buildGeneralPage(settings) {
     const page = new Adw.PreferencesPage({ title: 'General', icon_name: 'preferences-system-symbolic' });
+    const listen = pageListener(page, settings);
 
     // --- Gaps Group ---
     const gapsGroup = new Adw.PreferencesGroup({ title: 'Gaps' });
@@ -33,7 +35,7 @@ export function buildGeneralPage(settings) {
         innerGapsRow.visible = enabled;
         outerGapsRow.visible = enabled;
     };
-    settings.connect('changed::enable-gaps', updateGapsVisibility);
+    listen('changed::enable-gaps', updateGapsVisibility);
     updateGapsVisibility();
 
     page.add(gapsGroup);
