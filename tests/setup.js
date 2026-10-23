@@ -48,6 +48,11 @@ vi.mock('gi://Gio', () => ({
         Settings: class {
             constructor() {}
             get_string() { return 'yellow'; }
+        },
+        SettingsSchemaSource: {
+            get_default: vi.fn(() => ({
+                lookup: vi.fn(() => null)
+            }))
         }
     }
 }));
@@ -87,15 +92,16 @@ global.workspace_manager = {
     }))
 };
 let _laterCounter = 0;
+const mockLaters = {
+    add: vi.fn((type, callback) => {
+        const id = ++_laterCounter;
+        callback();
+        return id;
+    }),
+    remove: vi.fn()
+};
 global.compositor = {
-    get_laters: vi.fn(() => ({
-        add: vi.fn((type, callback) => {
-            const id = ++_laterCounter;
-            callback();
-            return id;
-        }),
-        remove: vi.fn()
-    }))
+    get_laters: vi.fn(() => mockLaters)
 };
 global.get_pointer = vi.fn(() => [0, 0, 0]);
 global.window_group = {
@@ -113,9 +119,14 @@ vi.mock('gi://Meta', () => ({
         },
         WindowType: {
             NORMAL: 0,
-            TERMINAL: 1,
+            DIALOG: 3,
             UTILITY: 2
         },
+        KeyBindingFlags: {
+            IGNORE_AUTOREPEAT: 1
+        },
+        keybindings_set_custom_handler: vi.fn(),
+        prefs_get_workspaces_only_on_primary: vi.fn(() => false),
         Backend: {
             get_monitor_manager: vi.fn(() => mockMonitorManager)
         },
@@ -126,7 +137,7 @@ vi.mock('gi://Meta', () => ({
 }));
 
 vi.mock('gi://Shell', () => ({
-    default: {}
+    default: { ActionMode: { NORMAL: 1 } }
 }));
 
 vi.mock('resource:///org/gnome/shell/ui/main.js', () => ({
@@ -140,4 +151,8 @@ vi.mock('resource:///org/gnome/shell/ui/main.js', () => ({
             remove_child: vi.fn()
         }
     }
+}));
+
+vi.mock('resource:///org/gnome/shell/misc/config.js', () => ({
+    PACKAGE_VERSION: '46.0'
 }));

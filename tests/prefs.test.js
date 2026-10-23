@@ -12,10 +12,15 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
         'close-monitor-include-minimized': false,
         'shortcut-close-workspace': [],
         'shortcut-switch-monitor': [],
-        'shortcut-port-monitor-left': [],
-        'shortcut-port-monitor-right': [],
         'shortcut-unminimize-workspace': [],
-        'custom-layouts': '{}'
+        'debug-logging': false,
+        'custom-layouts': '{}',
+        'self-maximize-mode': 'allow-listed',
+        'self-maximize-allow-list': ['firefox'],
+        'self-maximize-block-list': ['libreoffice'],
+        'maximize-focus-policy': 'unmaximize',
+        'hide-maximize-button': false,
+        'hotplug-policy': 'restore-by-monitor'
     };
 
     const mockListeners = {};
@@ -36,7 +41,7 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
                 mockListeners[`changed::${key}`].forEach(cb => cb());
             }
         },
-        bind: (key, object, property, flags) => {
+        bind: (key, object, property) => {
             Object.defineProperty(object, property, {
                 get: () => mockSettingsStore[key],
                 set: (val) => {
@@ -53,7 +58,10 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
                 mockListeners[signal] = [];
             }
             mockListeners[signal].push(callback);
-            return signal;
+            return { signal, callback };
+        },
+        disconnect: ({ signal, callback }) => {
+            mockListeners[signal] = (mockListeners[signal] ?? []).filter((cb) => cb !== callback);
         }
     };
 
@@ -109,6 +117,12 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
         }
         add(row) {
             this.rows.push(row);
+        }
+        remove(row) {
+            this.rows = this.rows.filter((r) => r !== row);
+        }
+        set_header_suffix(widget) {
+            this.headerSuffix = widget;
         }
     }
 
@@ -177,7 +191,12 @@ vi.mock('gi://Gio', () => ({
         },
         SettingsBindFlags: {
             DEFAULT: 0
-        }
+        },
+        AppInfo: {
+            get_all: () => [
+                { get_id: () => 'firefox.desktop', get_display_name: () => 'Firefox', get_icon: () => null, should_show: () => true },
+            ],
+        },
     }
 }));
 
@@ -188,6 +207,7 @@ vi.mock('gi://Adw', () => ({
 vi.mock('gi://Gtk', () => ({
     default: {
         Adjustment: class {},
+        Button: class extends BaseMockWidget {},
         Align: {
             CENTER: 0,
             START: 1,
@@ -202,13 +222,13 @@ vi.mock('gi://Gtk', () => ({
             constructor(params) {
                 Object.assign(this, params);
             }
-            add_css_class(cls) {}
+            add_css_class() {}
         },
         Image: class {
             constructor(params) {
                 Object.assign(this, params);
             }
-            add_css_class(cls) {}
+            add_css_class() {}
         },
         Box: class {
             constructor(params) {
@@ -279,7 +299,7 @@ vi.mock('resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js', () => (
     }
 }));
 
-vi.mock('../lib/editor/preview.js', () => ({
+vi.mock('../prefs/preview.js', () => ({
     LayoutPreviewPage: class extends BaseMockWidget {
         _init(settings) {
             this.settings = settings;
@@ -292,7 +312,7 @@ vi.mock('../lib/editor/preview.js', () => ({
     }
 }));
 
-vi.mock('../lib/editor/editor.js', () => ({
+vi.mock('../prefs/editor.js', () => ({
     LayoutEditorPage: class extends BaseMockWidget {
         _init(settings) {
             this.settings = settings;
@@ -303,6 +323,7 @@ vi.mock('../lib/editor/editor.js', () => ({
 
 // Import WorkflowTilingPreferences (relative to tests/ dir)
 import WorkflowTilingPreferences from '../prefs.js';
+import { Logger } from '../lib/utils/logger.js';
 
 describe('WorkflowTilingPreferences', () => {
     let prefs;
@@ -316,6 +337,11 @@ describe('WorkflowTilingPreferences', () => {
         mockSettingsStore['outer-gaps'] = 4;
         mockSettingsStore['keybindings-mode'] = 'default';
         mockSettingsStore['focus-window-mode'] = 'default';
+        mockSettingsStore['self-maximize-mode'] = 'allow-listed';
+        mockSettingsStore['self-maximize-allow-list'] = ['firefox'];
+        mockSettingsStore['self-maximize-block-list'] = ['libreoffice'];
+        mockSettingsStore['maximize-focus-policy'] = 'unmaximize';
+        mockSettingsStore['hotplug-policy'] = 'restore-by-monitor';
         mockSettingsStore['shortcut-close-monitor'] = [];
         mockSettingsStore['close-monitor-include-minimized'] = false;
 
@@ -341,18 +367,100 @@ describe('WorkflowTilingPreferences', () => {
         const titles = addedPages.map(p => p.title);
         expect(titles).toContain('General');
         expect(titles).toContain('Keyboard Shortcuts');
+        expect(titles).toContain('Monitors');
+        expect(titles).toContain('Maximizing');
         expect(titles).toContain('Layouts');
     });
 
-    it('should place Gaps and Monitor Transition groups in General page', () => {
+    describe('Maximizing page', () => {
+        let page;
+        beforeEach(() => {
+            prefs.fillPreferencesWindow(mockWindow);
+            page = addedPages.find(p => p.title === 'Maximizing');
+        });
+        const group = (title) => page.groups.find(g => g.title === title);
+
+        it('shows only the list of the active mode', () => {
+            expect(group('Allowed Apps').visible).toBe(true);
+            expect(group('Blocked Apps').visible).toBe(false);
+            const modeRow = group('Apps Maximizing Themselves').rows[0];
+            modeRow.selected = 2;
+            modeRow.emit('notify::selected');
+            expect(mockSettingsStore['self-maximize-mode']).toBe('all-except-listed');
+            expect(group('Allowed Apps').visible).toBe(false);
+            expect(group('Blocked Apps').visible).toBe(true);
+            modeRow.selected = 0;
+            modeRow.emit('notify::selected');
+            expect(group('Blocked Apps').visible).toBe(false);
+        });
+
+        it('lists entries with installed app names and removes them', () => {
+            const allowed = group('Allowed Apps');
+            expect(allowed.rows.map(r => [r.title, r.subtitle])).toEqual([['Firefox', 'firefox']]);
+            allowed.rows[0].suffixes[0].emit('clicked');
+            expect(mockSettingsStore['self-maximize-allow-list']).toEqual([]);
+            expect(allowed.rows).toEqual([]);
+        });
+
+        it('disconnects its settings listeners when the page is destroyed', () => {
+            const allowed = group('Allowed Apps');
+            page.emit('destroy');
+            mockSettings.set_strv('self-maximize-allow-list', ['firefox', 'org.gnome.epiphany']);
+            expect(allowed.rows).toHaveLength(1);
+        });
+
+        it('stores the focus policy', () => {
+            const focusRow = group('When Another Window Comes Forward').rows[0];
+            expect(focusRow.selected).toBe(1);
+            focusRow.selected = 2;
+            focusRow.emit('notify::selected');
+            expect(mockSettingsStore['maximize-focus-policy']).toBe('pass-on');
+            expect(focusRow.subtitle).toContain('maximized instead');
+        });
+    });
+
+    it('disconnects the General and Keyboard Shortcuts listeners when their pages are destroyed', () => {
+        prefs.fillPreferencesWindow(mockWindow);
+        const listeners = (key) => (mockListeners[`changed::${key}`] ?? []).length;
+        // a ShortcutRow keeps its own listener on its key; it is released in vfunc_dispose
+        const closeMonitorListeners = listeners('shortcut-close-monitor');
+
+        addedPages.find(p => p.title === 'General').emit('destroy');
+        addedPages.find(p => p.title === 'Keyboard Shortcuts').emit('destroy');
+
+        expect(listeners('enable-gaps')).toBe(0);
+        expect(listeners('focus-window-mode')).toBe(0);
+        expect(listeners('keybindings-mode')).toBe(0);
+        expect(listeners('shortcut-close-monitor')).toBe(closeMonitorListeners - 1);
+    });
+
+    it('should store the monitor change policy chosen on the Monitors page', () => {
+        mockSettingsStore['hotplug-policy'] = 'follow-primary';
+        prefs.fillPreferencesWindow(mockWindow);
+        const monitorsPage = addedPages.find(p => p.title === 'Monitors');
+        const policyRow = monitorsPage.groups[0].rows.find(r => r instanceof mockAdw.ComboRow);
+        expect(policyRow.selected).toBe(1);
+        expect(policyRow.subtitle).toContain('move to the new primary');
+
+        policyRow.selected = 0;
+        policyRow.emit('notify::selected');
+        expect(mockSettingsStore['hotplug-policy']).toBe('restore-by-monitor');
+        expect(policyRow.subtitle).toContain('return when it is reconnected');
+    });
+
+    it('should place Gaps and Debug groups in General page', () => {
         prefs.fillPreferencesWindow(mockWindow);
         const generalPage = addedPages.find(p => p.title === 'General');
 
         expect(generalPage).toBeDefined();
-        expect(generalPage.groups).toHaveLength(3);
+        expect(generalPage.groups).toHaveLength(2);
         expect(generalPage.groups[0].title).toBe('Gaps');
-        expect(generalPage.groups[1].title).toBe('Monitor Transition');
-        expect(generalPage.groups[2].title).toBe('Debug');
+        expect(generalPage.groups[1].title).toBe('Debug');
+
+        const debugGroup = generalPage.groups[1];
+        const debugSwitch = debugGroup.rows.find(r => r.title === 'Debug Logging');
+        expect(debugSwitch).toBeDefined();
+        expect(debugSwitch.active).toBe(false);
     });
 
     it('should place correct shortcut groups in Keyboard Shortcuts page', () => {
@@ -360,13 +468,17 @@ describe('WorkflowTilingPreferences', () => {
         const shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
 
         expect(shortcutsPage).toBeDefined();
-        expect(shortcutsPage.groups).toHaveLength(7);
+        expect(shortcutsPage.groups).toHaveLength(5);
         expect(shortcutsPage.groups[1].title).toBe('Window Focus & Position');
         expect(shortcutsPage.groups[2].title).toBe('Window State');
         expect(shortcutsPage.groups[3].title).toBe('Workspace Operations');
-        expect(shortcutsPage.groups[4].title).toBe('Workspace Switching');
-        expect(shortcutsPage.groups[5].title).toBe('Moving to Workspace');
-        expect(shortcutsPage.groups[6].title).toBe('Monitor Actions');
+        expect(shortcutsPage.groups[4].title).toBe('Monitor Actions');
+        expect(shortcutsPage.groups.map(g => g.title)).not.toContain('Moving to Workspace');
+
+        const monitorGroup = shortcutsPage.groups[4];
+        const monitorKeys = monitorGroup.rows.map(r => r.keyName).filter(Boolean);
+        expect(monitorKeys).toContain('shortcut-close-monitor');
+        expect(monitorKeys).toContain('shortcut-switch-monitor');
     });
 
     it('should toggle JSON Layout Editor page dynamically when active notify fires', () => {
@@ -468,7 +580,7 @@ describe('WorkflowTilingPreferences', () => {
             expect(dialog.closed).toBeUndefined(); // Should not close
         });
 
-        it('should handle missing surface or inhibit method without throwing', () => {
+        it('should handle a missing surface without throwing', () => {
             vi.spyOn(testRow, 'get_root').mockReturnValue({
                 get_surface() { return null; }
             });
@@ -478,6 +590,7 @@ describe('WorkflowTilingPreferences', () => {
         });
 
         it('should handle surface inhibit/restore throwing errors without crashing', () => {
+            const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
             vi.spyOn(testRow, 'get_root').mockReturnValue({
                 get_surface() {
                     return {
@@ -495,19 +608,18 @@ describe('WorkflowTilingPreferences', () => {
             
             // Re-simulate a response event trigger
             dialog.emit('response');
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('Inhibit failed'));
         });
     });
 
     describe('Mode Switching and Visibility Stress Tests', () => {
         let shortcutsPage;
         let swapGroup;
-        let testRow;
 
         beforeEach(() => {
             prefs.fillPreferencesWindow(mockWindow);
             shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
             swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Focus & Position');
-            testRow = swapGroup.rows.find(r => r.keyName === 'custom-move-window-left');
         });
 
         it('should update keybinding row visibilities when mode changes', () => {
