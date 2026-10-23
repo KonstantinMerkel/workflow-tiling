@@ -1,10 +1,5 @@
-# Layout Customization (JSON)
-
-Workflow Tiling uses an "Escalator" system (`lib/domain/layout/layout.js`) to generate window estates dynamically.
-Custom layout transitions are defined via a JSON object.
-
 ## Structure
-The JSON keys represent the total number of windows on a monitor. The values are arrays of window geometry definitions for that count.
+Each key is a number of windows on a monitor. Its value lists where those windows go.
 
 ```json
 {
@@ -19,14 +14,19 @@ The JSON keys represent the total number of windows on a monitor. The values are
 ```
 
 ## Properties
-- `x`: X percentage offset (0 to 100)
-- `y`: Y percentage offset (0 to 100)
-- `w`: Width percentage (0 to 100)
-- `h`: Height percentage (0 to 100)
-- `id` (Required): The logical 0-indexed ID this window occupies. The IDs map to the insertion order of windows. E.g., `id: 0` is the oldest window, `id: 1` is the second oldest. It MUST be unique and cover 0 to `count - 1`.
+All sizes are percentages
 
-## Fallback
-If the window count exceeds the highest key defined in the JSON, extra windows float (they keep their own frame and get no slot). When a slot frees up on that workspace and monitor, the oldest floating window takes it. Shrinking the JSON makes the last slots of a full monitor float; growing it promotes floating windows again.
+- `x`: Horizontal offset (0 to 100)
+- `y`: Vertical offset (0 to 100)
+- `w`: Width (0 to 100)
+- `h`: Height (0 to 100)
+- `id`: Which window takes this slot. Windows are numbered by when they were opened: `0` is the oldest, `1` the second oldest, and so on.
 
-## Validation
-The preferences window validates the JSON before saving it. If the stored JSON is invalid anyway (for example after editing it with `dconf`), tiling is suspended with a notification and resumes as soon as a valid JSON is stored; the current arrangement is kept meanwhile.
+## Rules
+- Layouts must start at `"1"` and must not skip a number.
+- The layout for `n` windows has exactly `n` slots, with the ids `0` to `n - 1`, each used once.
+- Every layout must cover the entire screen - what else would you use a tiling extension for ;)
+- Slots must not overlap and must cover the whole monitor without gaps. (Use the *Gaps* settings for spacing between windows.)
+
+## More Windows Than Layouts
+If a monitor has more windows than your largest layout, the extra windows float as without the extension. The oldest floating window will get tiled if you close one of your tiled windows

@@ -30,7 +30,7 @@ npm test
 ```
 
 ### Commentary & Documentation
-If you implement non-trivial features you may add a documentation file like `keybindings.md` in docs/.
+`docs/` is user-facing only: it explains how to use the extension, not how it works inside. 
 Otherwise the same commentary and documentation guidelines apply as the ones we all ignore in every other project ;)
 
 ## Future Development
