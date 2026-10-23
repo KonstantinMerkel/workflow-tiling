@@ -2,6 +2,7 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { appEntry, withEntry } from '../lib/domain/policies/override/self-maximize.js';
+import { choiceRow } from './rows.js';
 
 const SELF_MAXIMIZE_MODES = [
     { value: 'never', label: 'Never', subtitle: 'Tiled windows maximize only through the shortcuts' },
@@ -18,19 +19,6 @@ const FOCUS_POLICIES = [
     { value: 'unmaximize', label: 'Unmaximize', subtitle: 'The layout becomes visible again' },
     { value: 'pass-on', label: 'Pass on', subtitle: 'The other window is maximized instead' },
 ];
-
-/** Combo row storing one of `choices` in a string key; the subtitle explains the current choice. */
-function choiceRow(settings, key, title, choices) {
-    const row = new Adw.ComboRow({ title, model: Gtk.StringList.new(choices.map((c) => c.label)) });
-    row.selected = Math.max(0, choices.findIndex((c) => c.value === settings.get_string(key)));
-    row.subtitle = choices[row.selected].subtitle;
-    row.connect('notify::selected', () => {
-        const choice = choices[row.selected] ?? choices[0];
-        row.subtitle = choice.subtitle;
-        settings.set_string(key, choice.value);
-    });
-    return row;
-}
 
 /** Installed apps by list entry, for display names in the lists and the picker. */
 function installedApps() {
