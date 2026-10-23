@@ -32,8 +32,11 @@ install: compile-schemas do_sync
 test:
 	npm test && npx eslint .
 
-pack: compile-schemas
-	zip -r extension.zip $(FILES)
+# GNOME 44+ compiles the schema on install: the zip ships only the XML. Rebuilt from scratch, since zip -r adds
+# to an existing archive and would keep files that were deleted from the source tree.
+pack:
+	rm -f extension.zip
+	zip -r extension.zip $(FILES) -x schemas/gschemas.compiled
 
 enable: do_enable reminder
 
