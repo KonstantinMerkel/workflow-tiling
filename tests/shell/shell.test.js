@@ -292,6 +292,19 @@ describe('ShellEvents', () => {
         expect(windowPort.unregister).toHaveBeenCalledWith(6);
     });
 
+    it('reports removed workspaces on workspace-removed and on notify::n-workspaces', () => {
+        const engine = { onWorkspaceRemoved: vi.fn() };
+        const displayPort = { syncWorkspaces: vi.fn().mockReturnValueOnce([3]).mockReturnValueOnce([4, 5]) };
+        const events = new ShellEvents({ windowPort: {}, displayPort, engine });
+        const handlers = {};
+        events._connect = (_object, signal, callback) => (handlers[signal] = callback);
+        events.bind();
+
+        handlers['workspace-removed']();
+        handlers['notify::n-workspaces'](); // a lowered fixed workspace count emits only this
+        expect(engine.onWorkspaceRemoved.mock.calls).toEqual([[3], [4], [5]]);
+    });
+
     it('routes frame changes of the grabbed window away from onFrameChanged', () => {
         const engine = { onGrabBegin: vi.fn(), onPointerMoved: vi.fn(), onFrameChanged: vi.fn(), onGrabEnd: vi.fn() };
         const windowPort = { idOf: (w) => w.get_id() };

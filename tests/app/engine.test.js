@@ -301,6 +301,49 @@ describe('hotplug', () => {
         expect(windows.facts(3)).toMatchObject({ monitor: 'DP-7', minimized: false });
     });
 
+    it('forgets evacuated windows of a removed workspace; they stay minimized on redock', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        open(2, { workspace: 3, monitor: 'DP-2' });
+        const office = display.monitors[1];
+        engine.onTopologyChanging();
+        display.monitors = [display.monitors[0]];
+        engine.onWindowMoved(windows.set(2, { monitor: 'DP-1' }));
+        engine.onTopologyChanged();
+        display.flushLaters();
+
+        // Fixed workspace count lowered: Mutter moves window 2 to the last remaining workspace, then removes 3
+        engine.onWindowMoved(windows.set(2, { workspace: 2 }));
+        engine.onWorkspaceRemoved(3);
+        expect(engine.state.has(2)).toBe(false);
+
+        windows.calls = [];
+        engine.onTopologyChanging();
+        display.monitors = [display.monitors[0], office];
+        engine.onTopologyChanged();
+        display.flushLaters();
+        expect(windows.calls.filter((c) => c.id === 2)).toEqual([]);
+        expect(windows.facts(2).minimized).toBe(true);
+
+        engine.onMinimizedChanged(windows.set(2, { minimized: false })); // the user takes it back
+        expect(engine.state.record(2)).toMatchObject({ location: location(2, 'DP-1'), evacuated: null });
+    });
+
+    it('catches up on workspaces removed while suspended', () => {
+        const { windows, engine, display, open } = setup();
+        open(1, { workspace: 3, monitor: 'DP-2' });
+        engine.onTopologyChanging();
+        display.monitors = [display.monitors[0]];
+        engine.onTopologyChanged();
+        display.flushLaters();
+
+        engine.suspend();
+        windows.set(1, { workspace: 2 });
+        display.removedWorkspaces = [3];
+        engine.resync(windows.all());
+        expect(engine.state.has(1)).toBe(false);
+    });
+
     it('lets a restored floating window take a free slot', () => {
         const { windows, engine, display, open } = setup();
         [1, 2, 3, 4].forEach((id) => open(id, { monitor: 'DP-2' }));

@@ -39,6 +39,7 @@ export class FakeDisplayPort {
         this.current = monitors[0]?.id ?? null;
         this._laters = new Map();
         this._nextLater = 1;
+        this.removedWorkspaces = []; // tokens the next syncWorkspaces() reports
     }
 
     topology() {
@@ -56,6 +57,12 @@ export class FakeDisplayPort {
 
     activeWorkspace() {
         return this.active;
+    }
+
+    syncWorkspaces() {
+        const removed = this.removedWorkspaces;
+        this.removedWorkspaces = [];
+        return removed;
     }
 
     currentMonitorId() {
