@@ -6,12 +6,12 @@ vi.mock('gi://GLib', () => {
     let _timeoutCounter = 0;
     return {
         default: {
-            idle_add: vi.fn((priority, callback) => {
+            idle_add: vi.fn((_priority, callback) => {
                 const id = ++_idleCounter;
                 callback();
                 return id;
             }),
-            timeout_add: vi.fn((priority, interval, callback) => {
+            timeout_add: vi.fn((_priority, _interval, callback) => {
                 const id = ++_timeoutCounter;
                 callback();
                 return id;
@@ -93,7 +93,7 @@ global.workspace_manager = {
 };
 let _laterCounter = 0;
 const mockLaters = {
-    add: vi.fn((type, callback) => {
+    add: vi.fn((_type, callback) => {
         const id = ++_laterCounter;
         callback();
         return id;

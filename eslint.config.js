@@ -153,7 +153,9 @@ export default [
                 "error",
                 { 
                     "vars": "all",
-                    "args": "after-used",
+                    // Positional callbacks of GTK / Mutter signals: unused leading args are named _x
+                    "args": "all",
+                    "argsIgnorePattern": "^_",
                     "caughtErrors": "all"
                 }
             ],

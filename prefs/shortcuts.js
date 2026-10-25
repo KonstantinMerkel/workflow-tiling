@@ -38,7 +38,7 @@ const ShortcutRowMixin = {
         dialog.connect('response', cleanup);
 
         const controller = new Gtk.EventControllerKey();
-        controller.connect('key-pressed', (ctrl, keyval, keycode, state) => {
+        controller.connect('key-pressed', (_ctrl, keyval, _keycode, state) => {
             const modifiers = state & Gtk.accelerator_get_default_mod_mask();
 
             if (keyval === Gdk.KEY_BackSpace && modifiers === 0) {

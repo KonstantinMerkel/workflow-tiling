@@ -667,7 +667,7 @@ describe('maximization', () => {
         engine.toggleOverride(1, 'fullscreen');
         display.flushLaters();
         windows.set(1, { maximized: true, maximizedFully: true }); // fullscreen on top of a maximization
-        windows.onSetMode = (id, facts) => engine.onModeChanged(facts); // unfullscreened, still maximized
+        windows.onSetMode = (_id, facts) => engine.onModeChanged(facts); // unfullscreened, still maximized
         engine.toggleOverride(1, 'fullscreen');
         display.flushLaters();
         expect(engine.state.record(1).mode).toBe(Mode.TILED);
