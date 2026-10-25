@@ -23,7 +23,7 @@ export function makeConfig(
         hotplugPolicy = 'restore-by-monitor',
     } = {},
 ) {
-    return { gaps, escalator: LayoutParser.parse(layouts), selfMaximize, focusPolicy, hotplugPolicy, debug: false };
+    return { gaps, escalator: LayoutParser.parse(layouts), selfMaximize, focusPolicy, hotplugPolicy };
 }
 
 export function monitor(id, index, x, { primary = false, width = 1000, height = 1000, edid = null } = {}) {
@@ -107,10 +107,8 @@ export class FakeWindowPort {
             id,
             sequence: id,
             tilable: true,
-            userSticky: false,
             workspace: 1,
             monitor: this.displayPort.monitors[0].id,
-            monitorIndex: 0,
             minimized: false,
             maximized: false,
             maximizedFully: false,
@@ -157,7 +155,7 @@ export class FakeWindowPort {
     moveToMonitor(id, index) {
         this._record('moveToMonitor', id, index);
         const m = this.displayPort.monitors.find((mon) => mon.index === index);
-        if (this.windows.has(id) && m) Object.assign(this.windows.get(id), { monitor: m.id, monitorIndex: index });
+        if (this.windows.has(id) && m) Object.assign(this.windows.get(id), { monitor: m.id });
     }
 
     changeWorkspace(id, key) {

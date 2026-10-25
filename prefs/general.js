@@ -174,8 +174,7 @@ try {
 }
 
 function showDialog(parentWindow, heading, body) {
-const DialogClass = Adw.AlertDialog || Adw.MessageDialog;
-const dialog = new DialogClass({ heading, body });
+const dialog = new Adw.AlertDialog({ heading, body });
 dialog.add_response('ok', 'OK');
 dialog.present(parentWindow);
 }

@@ -9,8 +9,7 @@ import { pageListener } from './rows.js';
 const ShortcutRowMixin = {
     _recordShortcut() {
         const window = this.get_root();
-        const DialogClass = Adw.AlertDialog || Adw.MessageDialog;
-        const dialog = new DialogClass({
+        const dialog = new Adw.AlertDialog({
             heading: 'Set Shortcut',
             body: 'Press the new shortcut combination...\nPress Backspace to clear.',
         });

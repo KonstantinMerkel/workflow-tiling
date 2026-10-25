@@ -160,11 +160,11 @@ describe('MutterWindowPort', () => {
     it('treats user-sticky windows as untilable and monitor-sticky ones as ALL_WORKSPACES', () => {
         const port = new MutterWindowPort(displayPort);
         port.register(fakeWindow(1, { is_on_all_workspaces: () => true }));
-        expect(port.facts(1)).toMatchObject({ userSticky: true, tilable: false, workspace: ALL_WORKSPACES });
+        expect(port.facts(1)).toMatchObject({ tilable: false, workspace: ALL_WORKSPACES });
 
         Meta.prefs_get_workspaces_only_on_primary.mockReturnValueOnce(true);
         port.register(fakeWindow(2, { is_on_all_workspaces: () => true, is_on_primary_monitor: () => false }));
-        expect(port.facts(2)).toMatchObject({ userSticky: false, tilable: true, workspace: ALL_WORKSPACES });
+        expect(port.facts(2)).toMatchObject({ tilable: true, workspace: ALL_WORKSPACES });
     });
 
     it('reports size limits as frame sizes on GNOME 50', () => {

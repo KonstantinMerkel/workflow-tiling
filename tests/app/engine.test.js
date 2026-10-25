@@ -152,7 +152,7 @@ describe('moves', () => {
         const { windows, engine, display, open } = setup();
         open(1);
         open(2);
-        open(3, { monitor: 'DP-2', monitorIndex: 1 });
+        open(3, { monitor: 'DP-2' });
         engine.moveDirection(2, Direction.RIGHT);
         display.flushLaters();
         expect(engine.state.slotsAt(DP2)).toEqual([2, 3]); // left edge of the 2-layout is slot 0
@@ -164,7 +164,7 @@ describe('moves', () => {
     it('floats a window moved by keyboard onto a full monitor', () => {
         const { windows, engine, display, open } = setup();
         open(1);
-        [2, 3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
+        [2, 3, 4].forEach((id) => open(id, { monitor: 'DP-2' }));
         engine.moveDirection(1, Direction.RIGHT);
         display.flushLaters();
         expect(engine.state.record(1)).toMatchObject({ location: DP2, mode: Mode.FLOATING });
@@ -184,8 +184,8 @@ describe('moves', () => {
     it('floats a window moved by Mutter onto a full monitor', () => {
         const { windows, engine, open } = setup();
         open(1);
-        [2, 3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
-        engine.onWindowMoved(windows.set(1, { monitor: 'DP-2', monitorIndex: 1 }));
+        [2, 3, 4].forEach((id) => open(id, { monitor: 'DP-2' }));
+        engine.onWindowMoved(windows.set(1, { monitor: 'DP-2' }));
         expect(engine.state.record(1)).toMatchObject({ location: DP2, mode: Mode.FLOATING });
     });
 
@@ -213,7 +213,7 @@ describe('moves', () => {
         const { windows, engine, open } = setup();
         open(1);
         open(2);
-        open(3, { monitor: 'DP-2', monitorIndex: 1 });
+        open(3, { monitor: 'DP-2' });
         engine.focusDirection(1, Direction.RIGHT);
         engine.focusDirection(2, Direction.RIGHT);
         expect(windows.callsOf('activate').map((c) => c.id)).toEqual([2, 3]);
@@ -222,7 +222,7 @@ describe('moves', () => {
     it('switches the content of two monitors', () => {
         const { windows, engine, display, open } = setup();
         open(1);
-        open(2, { monitor: 'DP-2', monitorIndex: 1 });
+        open(2, { monitor: 'DP-2' });
         engine.switchMonitors(1);
         display.flushLaters();
         expect(engine.state.slotsAt(DP1)).toEqual([2]);
@@ -276,14 +276,14 @@ describe('hotplug', () => {
     it('evacuates on unplug, ignores the consequences, and restores to the same EDID', () => {
         const { windows, engine, display, open } = setup();
         open(1);
-        open(2, { monitor: 'DP-2', monitorIndex: 1 });
-        open(3, { monitor: 'DP-2', monitorIndex: 1 });
+        open(2, { monitor: 'DP-2' });
+        open(3, { monitor: 'DP-2' });
         const office = display.monitors[1];
 
         engine.onTopologyChanging();
         display.monitors = [display.monitors[0]];
-        engine.onWindowMoved(windows.set(2, { monitor: 'DP-1', monitorIndex: 0 }));
-        engine.onWindowMoved(windows.set(3, { monitor: 'DP-1', monitorIndex: 0 }));
+        engine.onWindowMoved(windows.set(2, { monitor: 'DP-1' }));
+        engine.onWindowMoved(windows.set(3, { monitor: 'DP-1' }));
         engine.onTopologyChanged();
         display.flushLaters();
 
@@ -303,7 +303,7 @@ describe('hotplug', () => {
 
     it('lets a restored floating window take a free slot', () => {
         const { windows, engine, display, open } = setup();
-        [1, 2, 3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
+        [1, 2, 3, 4].forEach((id) => open(id, { monitor: 'DP-2' }));
         const office = display.monitors[1];
         engine.onTopologyChanging();
         display.monitors = [display.monitors[0]];
@@ -322,10 +322,10 @@ describe('hotplug', () => {
 
     it('lets the user take an evacuated window back by unminimizing it', () => {
         const { windows, engine, display, open } = setup();
-        open(1, { monitor: 'DP-2', monitorIndex: 1 });
+        open(1, { monitor: 'DP-2' });
         engine.onTopologyChanging();
         display.monitors = [display.monitors[0]];
-        windows.set(1, { monitor: 'DP-1', monitorIndex: 0 });
+        windows.set(1, { monitor: 'DP-1' });
         engine.onTopologyChanged();
         display.flushLaters();
 
@@ -338,7 +338,7 @@ describe('hotplug', () => {
         const laptop = monitor('eDP-1', 0, 0);
         const external = monitor('DP-6', 1, 1000, { primary: true });
         const { windows, engine, display, open } = setup({ monitors: [laptop, external], hotplugPolicy: 'follow-primary' });
-        const onExternal = { monitor: 'DP-6', monitorIndex: 1 };
+        const onExternal = { monitor: 'DP-6' };
         open(1, onExternal);
         open(2, onExternal);
         open(3);
@@ -370,7 +370,7 @@ describe('hotplug', () => {
     it('re-keys monitors whose primary role changed with workspaces-only-on-primary', () => {
         const { engine, display, open } = setup({ onlyPrimary: true });
         open(1);
-        open(2, { monitor: 'DP-2', monitorIndex: 1, workspace: ALL_WORKSPACES });
+        open(2, { monitor: 'DP-2', workspace: ALL_WORKSPACES });
         engine.onTopologyChanging();
         display.monitors = display.monitors.map((m) => ({ ...m, primary: m.id === 'DP-2' }));
         engine.onTopologyChanged();
@@ -385,7 +385,7 @@ describe('hotplug', () => {
         open(1);
         engine.onTopologyChanging();
         engine.onTopologyChanged();
-        engine.onWindowMoved(windows.set(1, { monitor: 'DP-2', monitorIndex: 1 }));
+        engine.onWindowMoved(windows.set(1, { monitor: 'DP-2' }));
         expect(engine.state.record(1).location).toEqual(DP1);
         display.flushLaters();
         expect(engine.topologyChanging).toBe(false);
@@ -396,8 +396,8 @@ describe('hotplug', () => {
 describe('workspaces', () => {
     it('re-keys secondary monitors when workspaces-only-on-primary is turned off', () => {
         const { windows, engine, display, open } = setup({ onlyPrimary: true });
-        open(1, { monitor: 'DP-2', monitorIndex: 1, workspace: ALL_WORKSPACES });
-        open(2, { monitor: 'DP-2', monitorIndex: 1, workspace: ALL_WORKSPACES });
+        open(1, { monitor: 'DP-2', workspace: ALL_WORKSPACES });
+        open(2, { monitor: 'DP-2', workspace: ALL_WORKSPACES });
         display.onlyPrimary = false;
         engine.onWorkspaceModeChanged();
         expect(engine.state.slotsAt(location(1, 'DP-2'))).toEqual([1, 2]);
@@ -409,7 +409,7 @@ describe('workspaces', () => {
 
     it('marks windows on all workspaces dirty when the active workspace changes', () => {
         const { windows, engine, display, open } = setup({ onlyPrimary: true });
-        open(1, { monitor: 'DP-2', monitorIndex: 1, workspace: ALL_WORKSPACES });
+        open(1, { monitor: 'DP-2', workspace: ALL_WORKSPACES });
         windows.set(1, { frame: { x: 1, y: 1, width: 1, height: 1 } });
         display.active = 2;
         engine.onActiveWorkspaceChanged();
@@ -509,7 +509,7 @@ describe('drag', () => {
         display.flushLaters();
         expect(engine.state.slotsAt(DP2)).toEqual([1]);
 
-        [3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
+        [3, 4].forEach((id) => open(id, { monitor: 'DP-2' }));
         engine.onGrabBegin(2, 'move');
         engine.onPointerMoved({ x: 1500, y: 500 });
         engine.onGrabEnd(2, 'move');
@@ -547,7 +547,7 @@ describe('drag', () => {
         const { windows, engine, display, open } = setup();
         open(1);
         open(2);
-        [3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
+        [3, 4].forEach((id) => open(id, { monitor: 'DP-2' }));
         engine.onGrabBegin(1, 'move');
         engine.onPointerMoved({ x: 100, y: 100 });
         engine.onWindowGone(4);
@@ -558,10 +558,10 @@ describe('drag', () => {
     it('opens a window in its tile mid-drag', () => {
         const { windows, engine, display, open } = setup();
         open(1);
-        open(3, { monitor: 'DP-2', monitorIndex: 1 });
+        open(3, { monitor: 'DP-2' });
         engine.onGrabBegin(1, 'move');
         engine.onPointerMoved({ x: 100, y: 100 });
-        windows.add(2, { monitor: 'DP-2', monitorIndex: 1 });
+        windows.add(2, { monitor: 'DP-2' });
         engine.onWindowAppeared(windows.facts(2));
         expect(engine.initialFrame(2)).toEqual({ x: 1500, y: 0, width: 500, height: 1000 });
         display.flushLaters();
@@ -572,13 +572,13 @@ describe('drag', () => {
         const { engine, display, open } = setup();
         open(1);
         open(2);
-        [3, 4].forEach((id) => open(id, { monitor: 'DP-2', monitorIndex: 1 }));
+        [3, 4].forEach((id) => open(id, { monitor: 'DP-2' }));
         engine.onGrabBegin(1, 'move');
         engine.onPointerMoved({ x: 1500, y: 500 });
         expect(engine.drag.target()).toMatchObject({ kind: 'relocate', location: DP2 });
         expect(engine.drag.target().slot).not.toBeNull();
 
-        open(5, { monitor: 'DP-2', monitorIndex: 1 });
+        open(5, { monitor: 'DP-2' });
         engine.onGrabEnd(1, 'move');
         display.flushLaters();
         expect(engine.state.slotsAt(DP2)).toEqual([3, 4, 5]);
