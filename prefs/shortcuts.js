@@ -48,13 +48,9 @@ const ShortcutRowMixin = {
                 return Gdk.EVENT_STOP;
             }
 
-            const isModifier =
-                (keyval >= Gdk.KEY_Shift_L && keyval <= Gdk.KEY_Hyper_R) ||
-                (keyval >= Gdk.KEY_Alt_L && keyval <= Gdk.KEY_Alt_R) ||
-                (keyval >= Gdk.KEY_Meta_L && keyval <= Gdk.KEY_Meta_R) ||
-                (keyval >= Gdk.KEY_Super_L && keyval <= Gdk.KEY_Super_R) ||
-                (keyval >= Gdk.KEY_Control_L && keyval <= Gdk.KEY_Control_R);
-            if (isModifier) return Gdk.EVENT_PROPAGATE;
+            // A global shortcut needs Ctrl, Alt or Super: plain or Shift-only keys would swallow typing
+            const hasModifier = (modifiers & ~Gdk.ModifierType.SHIFT_MASK) !== 0;
+            if (!hasModifier || !Gtk.accelerator_valid(keyval, modifiers)) return Gdk.EVENT_PROPAGATE;
 
             const accel = Gtk.accelerator_name(keyval, modifiers);
             if (accel) {

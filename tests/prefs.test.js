@@ -248,7 +248,11 @@ vi.mock('gi://Gtk', () => ({
             }
         },
         accelerator_get_default_mod_mask() {
-            return 0;
+            return 0x1c00000d; // Shift | Control | Alt | Super | Hyper | Meta
+        },
+        // Modifier keys alone are invalid; everything else is accepted, like printable keys in GTK
+        accelerator_valid(keyval) {
+            return !(keyval >= 0xffe1 && keyval <= 0xffee);
         },
         accelerator_name() {
             return 'mock-accel';
@@ -269,6 +273,7 @@ vi.mock('gi://Gdk', () => ({
         KEY_Super_R: 0xffec,
         KEY_Control_L: 0xffe3,
         KEY_Control_R: 0xffe4,
+        ModifierType: { SHIFT_MASK: 1 },
         EVENT_STOP: true,
         EVENT_PROPAGATE: false
     }
@@ -549,6 +554,30 @@ describe('WorkflowTilingPreferences', () => {
             expect(stopResult).toBe(true); // Gdk.EVENT_STOP is true
             expect(mockSettingsStore['custom-move-window-left']).toEqual(['mock-accel']);
             expect(dialog.closed).toBe(true);
+        });
+
+        it('should ignore keys without Ctrl, Alt or Super', () => {
+            mockSettingsStore['custom-move-window-left'] = ['<Super>h'];
+            testRow.emit('activated');
+            const dialog = mockAdw.lastAlertDialog;
+            const controller = dialog.controllers[0];
+
+            expect(controller.callback(controller, 113, 0, 0)).toBe(false); // plain q
+            expect(controller.callback(controller, 113, 0, 1)).toBe(false); // Shift+q
+            expect(mockSettingsStore['custom-move-window-left']).toEqual(['<Super>h']);
+            expect(dialog.closed).toBeUndefined();
+        });
+
+        it('should ignore accelerators GTK rejects', () => {
+            mockSettingsStore['custom-move-window-left'] = ['<Super>h'];
+            testRow.emit('activated');
+            const dialog = mockAdw.lastAlertDialog;
+            const controller = dialog.controllers[0];
+            vi.spyOn(Gtk, 'accelerator_valid').mockReturnValueOnce(false);
+
+            expect(controller.callback(controller, 0xff09, 0, 4)).toBe(false); // e.g. Ctrl+Tab
+            expect(mockSettingsStore['custom-move-window-left']).toEqual(['<Super>h']);
+            expect(dialog.closed).toBeUndefined();
         });
 
         it('should clear shortcut when Backspace is pressed without modifiers', () => {
