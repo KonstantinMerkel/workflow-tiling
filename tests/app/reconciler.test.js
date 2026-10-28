@@ -8,11 +8,10 @@ const LOC = location(1, 'DP-1');
 const FULL = { x: 0, y: 0, width: 1000, height: 1000 };
 const OLD = { x: 0, y: 0, width: 10, height: 10 };
 
-function setup() {
+function setup(config = makeConfig()) {
     const display = new FakeDisplayPort([monitor('DP-1', 0, 0, { primary: true })]);
     const windows = new FakeWindowPort(display);
     const state = new TilingState();
-    const config = makeConfig();
     const reconciler = new Reconciler({ view: state.view(), windowPort: windows, displayPort: display, getConfig: () => config });
     return { display, windows, state, reconciler };
 }
@@ -117,6 +116,15 @@ describe('Reconciler', () => {
         reconciler.markDirty(LOC);
         display.flushLaters();
         expect(windows.callsOf('setFrame').map((c) => c.arg)).toEqual([FULL]);
+    });
+
+    it('requests at least 1x1 when the gaps exceed the tile', () => {
+        const { display, windows, state, reconciler } = setup(makeConfig(undefined, { gaps: { inner: 0, outer: 600 } }));
+        windows.add(1);
+        state.place(1, 1, LOC, Mode.TILED);
+        reconciler.markDirty(LOC);
+        display.flushLaters();
+        expect(windows.callsOf('setFrame')[0].arg).toMatchObject({ width: 1, height: 1 });
     });
 
     it('clamps requests to the window size limits', () => {
