@@ -301,6 +301,23 @@ describe('hotplug', () => {
         expect(windows.facts(3)).toMatchObject({ monitor: 'DP-7', minimized: false });
     });
 
+    it('processes window moves again after a monitor change that failed', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        const topology = display.topology;
+        display.topology = () => {
+            throw new Error('broken monitor');
+        };
+        engine.onTopologyChanging();
+        expect(() => engine.onTopologyChanged()).toThrow('broken monitor');
+        display.topology = topology;
+        display.flushLaters();
+
+        expect(engine.topologyChanging).toBe(false);
+        engine.onWindowMoved(windows.set(1, { monitor: 'DP-2' }));
+        expect(engine.state.record(1).location).toEqual(DP2);
+    });
+
     it('restores windows in their remembered slot order, not in the order they opened', () => {
         const { windows, engine, display, open } = setup();
         open(1);
