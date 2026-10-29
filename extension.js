@@ -17,7 +17,24 @@ import { MaximizeButtonHider } from './lib/shell/button-layout.js';
  * Composition root: creates every Shell object and the Engine, and destroys them in reverse order.
  */
 export default class WorkflowTilingExtension extends Extension {
+    /**
+     * GNOME marks an extension whose enable() throws as failed and never calls disable(), so whatever was set up so
+     * far is undone here. disable() skips every part that was never built (each is assigned only once complete).
+     */
     enable() {
+        try {
+            this._enable();
+        } catch (e) {
+            try {
+                this.disable();
+            } catch (cleanupError) {
+                Logger.error('Cleanup after a failed enable failed', cleanupError);
+            }
+            throw e;
+        }
+    }
+
+    _enable() {
         Logger.info(`Enabling ${this.metadata.name} ${this.metadata['version-name'] ?? ''} on GNOME Shell ${Config.PACKAGE_VERSION}`);
         this._settings = this.getSettings();
         this._configSource = new GSettingsConfigSource(this._settings);
