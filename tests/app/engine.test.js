@@ -733,6 +733,29 @@ describe('maximization', () => {
         }
     });
 
+    it('keeps the focus policy working after a window closes during its own drag or a suspend', () => {
+        const closed = (engine, windows) => {
+            windows.windows.delete(3);
+            engine.onWindowGone(3);
+        };
+        const suspended = (engine, windows) => {
+            engine.suspend();
+            engine.resync(windows.all());
+        };
+        for (const missedGrabEnd of [closed, suspended]) {
+            const { windows, engine, display, open } = setup({ focusPolicy: 'unmaximize' });
+            open(1);
+            open(2);
+            open(3);
+            engine.onGrabBegin(3, 'move'); // its grab end never arrives
+            missedGrabEnd(engine, windows);
+            engine.toggleOverride(1, 'maximize');
+            display.flushLaters();
+            engine.onFocusChanged(2);
+            expect(engine.state.record(1).mode).toBe(Mode.TILED);
+        }
+    });
+
     it('keeps one maximized window per layout when another one maximizes', () => {
         const { windows, engine, display, open } = setup({ selfMaximize: allowFirefox });
         open(1);
