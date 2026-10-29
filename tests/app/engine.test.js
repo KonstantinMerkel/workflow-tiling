@@ -301,6 +301,29 @@ describe('hotplug', () => {
         expect(windows.facts(3)).toMatchObject({ monitor: 'DP-7', minimized: false });
     });
 
+    it('restores windows in their remembered slot order, not in the order they opened', () => {
+        const { windows, engine, display, open } = setup();
+        open(1);
+        open(2, { monitor: 'DP-2' });
+        open(3, { monitor: 'DP-2' });
+        open(4, { monitor: 'DP-2' });
+        engine.state.swap(2, 4); // e.g. dragged onto each other
+        expect(engine.state.slotsAt(DP2)).toEqual([4, 3, 2]);
+        const office = display.monitors[1];
+
+        engine.onTopologyChanging();
+        display.monitors = [display.monitors[0]];
+        [2, 3, 4].forEach((id) => engine.onWindowMoved(windows.set(id, { monitor: 'DP-1' })));
+        engine.onTopologyChanged();
+        display.flushLaters();
+
+        engine.onTopologyChanging();
+        display.monitors = [display.monitors[0], office];
+        engine.onTopologyChanged();
+        display.flushLaters();
+        expect(engine.state.slotsAt(DP2)).toEqual([4, 3, 2]);
+    });
+
     it('forgets evacuated windows of a removed workspace; they stay minimized on redock', () => {
         const { windows, engine, display, open } = setup();
         open(1);
