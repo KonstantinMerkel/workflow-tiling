@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Gtk from 'gi://Gtk';
 
-const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw } = vi.hoisted(() => {
+const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw, gnomeKeys, gnomeListeners } = vi.hoisted(() => {
     const mockSettingsStore = {
         'enable-gaps': true,
         'inner-gaps': 6,
         'outer-gaps': 4,
-        'keybindings-mode': 'default',
-        'focus-window-mode': 'default',
+        'focus-window-mode': 'none',
+        'keybindings-mode': 'none',
         'shortcut-close-monitor': [],
         'close-monitor-include-minimized': false,
         'shortcut-close-workspace': [],
@@ -26,6 +26,7 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
     const mockListeners = {};
 
     const mockSettings = {
+        schema_id: 'org.gnome.shell.extensions.workflow-tiling',
         get_boolean: (key) => mockSettingsStore[key] ?? false,
         get_string: (key) => mockSettingsStore[key] ?? '',
         set_string: (key, val) => {
@@ -147,6 +148,19 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
                 this.selected = 0;
             }
         },
+        ExpanderRow: class extends BaseMockWidget {
+            _init(params) {
+                super._init(params);
+                this.rows = [];
+                this.suffixes = [];
+            }
+            add_row(row) {
+                this.rows.push(row);
+            }
+            add_suffix(widget) {
+                this.suffixes.push(widget);
+            }
+        },
         ActionRow: class extends BaseMockWidget {
             _init(params) {
                 super._init(params);
@@ -154,6 +168,9 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
             }
             add_suffix(widget) {
                 this.suffixes.push(widget);
+            }
+            add_prefix(widget) {
+                this.prefix = widget;
             }
         },
         AlertDialog: class extends BaseMockWidget {
@@ -179,15 +196,47 @@ const { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw 
         }
     };
 
-    return { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw };
+    // GNOME's shortcuts for the conflict check: key -> accelerators, all in one mocked schema
+    const gnomeKeys = new Map();
+    const gnomeListeners = new Map(); // id -> 'changed' callback of a GNOME settings object
+
+    return { mockSettingsStore, mockListeners, mockSettings, BaseMockWidget, mockAdw, gnomeKeys, gnomeListeners };
 });
 
 vi.mock('gi://Gio', () => ({
     default: {
-        Settings: class {
-            constructor() {
-                return mockSettings;
+        Settings: class Settings {
+            static lastId = 0; // never reused, so a new handler cannot replace a live one
+
+            constructor({ schema_id: schemaId } = {}) {
+                if (schemaId !== 'org.gnome.desktop.wm.keybindings') return mockSettings;
+                this.schema_id = schemaId;
             }
+            get_strv(key) {
+                return gnomeKeys.get(key) ?? [];
+            }
+            connect(signal, callback) {
+                const id = ++Settings.lastId;
+                if (signal === 'changed') gnomeListeners.set(id, callback);
+                return id;
+            }
+            disconnect(id) {
+                gnomeListeners.delete(id);
+            }
+        },
+        SettingsSchemaSource: {
+            get_default: () => ({
+                lookup: (id) =>
+                    id === 'org.gnome.desktop.wm.keybindings'
+                        ? {
+                              list_keys: () => [...gnomeKeys.keys()],
+                              get_key: (key) => ({
+                                  get_value_type: () => ({ dup_string: () => 'as' }),
+                                  get_summary: () => `GNOME ${key}`,
+                              }),
+                          }
+                        : null,
+            }),
         },
         SettingsBindFlags: {
             DEFAULT: 0
@@ -207,7 +256,26 @@ vi.mock('gi://Adw', () => ({
 vi.mock('gi://Gtk', () => ({
     default: {
         Adjustment: class {},
+        ListBox: class extends BaseMockWidget {
+            append(child) {
+                (this.children ??= []).push(child);
+            }
+        },
+        SelectionMode: { NONE: 0 },
+        CssProvider: class {
+            load_from_string(css) {
+                this.css = css;
+            }
+        },
+        StyleContext: { add_provider_for_display() {} },
+        STYLE_PROVIDER_PRIORITY_APPLICATION: 600,
         Button: class extends BaseMockWidget {},
+        DropDown: class extends BaseMockWidget {
+            _init(params) {
+                super._init(params);
+                this.selected = 0;
+            }
+        },
         Align: {
             CENTER: 0,
             START: 1,
@@ -274,6 +342,7 @@ vi.mock('gi://Gdk', () => ({
         KEY_Control_L: 0xffe3,
         KEY_Control_R: 0xffe4,
         ModifierType: { SHIFT_MASK: 1 },
+        Display: { get_default: () => ({}) },
         EVENT_STOP: true,
         EVENT_PROPAGATE: false
     }
@@ -340,8 +409,6 @@ describe('WorkflowTilingPreferences', () => {
         mockSettingsStore['enable-gaps'] = true;
         mockSettingsStore['inner-gaps'] = 6;
         mockSettingsStore['outer-gaps'] = 4;
-        mockSettingsStore['keybindings-mode'] = 'default';
-        mockSettingsStore['focus-window-mode'] = 'default';
         mockSettingsStore['self-maximize-mode'] = 'allow-listed';
         mockSettingsStore['self-maximize-allow-list'] = ['firefox'];
         mockSettingsStore['self-maximize-block-list'] = ['libreoffice'];
@@ -349,6 +416,15 @@ describe('WorkflowTilingPreferences', () => {
         mockSettingsStore['hotplug-policy'] = 'restore-by-monitor';
         mockSettingsStore['shortcut-close-monitor'] = [];
         mockSettingsStore['close-monitor-include-minimized'] = false;
+        mockSettingsStore['focus-window-mode'] = 'none';
+        mockSettingsStore['keybindings-mode'] = 'none';
+        for (const dir of ['left', 'right', 'up', 'down']) {
+            for (const key of ['move-window', 'focus-window', 'custom-move-window', 'custom-focus-window']) {
+                mockSettingsStore[`${key}-${dir}`] = [];
+            }
+        }
+        gnomeKeys.clear();
+        gnomeListeners.clear();
 
         Object.keys(mockListeners).forEach(k => delete mockListeners[k]);
 
@@ -372,7 +448,7 @@ describe('WorkflowTilingPreferences', () => {
         const titles = addedPages.map(p => p.title);
         expect(titles).toContain('General');
         expect(titles).toContain('Keyboard Shortcuts');
-        expect(titles).toContain('Monitors');
+        expect(titles).not.toContain('Monitors');
         expect(titles).toContain('Maximizing');
         expect(titles).toContain('Layouts');
     });
@@ -384,6 +460,15 @@ describe('WorkflowTilingPreferences', () => {
             page = addedPages.find(p => p.title === 'Maximizing');
         });
         const group = (title) => page.groups.find(g => g.title === title);
+
+        it('explains the shortcuts and what maximizing supports in an info box', () => {
+            const box = page.groups[0].rows[0];
+            expect(box.css_classes).toEqual(['boxed-list', 'workflow-tiling-info']);
+            const row = box.children[0];
+            expect(row.prefix.icon_name).toBe('help-about-symbolic');
+            expect(row.title).toContain('shortcuts always work');
+            expect(row.title).toContain('not maximizing to one half');
+        });
 
         it('shows only the list of the active mode', () => {
             expect(group('Allowed Apps').visible).toBe(true);
@@ -439,11 +524,13 @@ describe('WorkflowTilingPreferences', () => {
         expect(listeners('shortcut-close-monitor')).toBe(closeMonitorListeners - 1);
     });
 
-    it('should store the monitor change policy chosen on the Monitors page', () => {
+    it('should store the monitor change policy chosen on the General page', () => {
         mockSettingsStore['hotplug-policy'] = 'follow-primary';
         prefs.fillPreferencesWindow(mockWindow);
-        const monitorsPage = addedPages.find(p => p.title === 'Monitors');
-        const policyRow = monitorsPage.groups[0].rows.find(r => r instanceof mockAdw.ComboRow);
+        const generalPage = addedPages.find(p => p.title === 'General');
+        const monitorGroup = generalPage.groups.find(g => g.title === 'Monitor Change Policy');
+        expect(monitorGroup.description).toContain('laptop + dock');
+        const policyRow = monitorGroup.rows.find(r => r instanceof mockAdw.ComboRow);
         expect(policyRow.selected).toBe(1);
         expect(policyRow.subtitle).toContain('move to the new primary');
 
@@ -453,16 +540,14 @@ describe('WorkflowTilingPreferences', () => {
         expect(policyRow.subtitle).toContain('return when it is reconnected');
     });
 
-    it('should place Gaps and Debug groups in General page', () => {
+    it('should place Gaps, Monitor Change Policy and Debug groups in General page', () => {
         prefs.fillPreferencesWindow(mockWindow);
         const generalPage = addedPages.find(p => p.title === 'General');
 
         expect(generalPage).toBeDefined();
-        expect(generalPage.groups).toHaveLength(2);
-        expect(generalPage.groups[0].title).toBe('Gaps');
-        expect(generalPage.groups[1].title).toBe('Debug');
+        expect(generalPage.groups.map(g => g.title)).toEqual(['Gaps', 'Monitor Change Policy', 'Debug']);
 
-        const debugGroup = generalPage.groups[1];
+        const debugGroup = generalPage.groups[2];
         const debugSwitch = debugGroup.rows.find(r => r.title === 'Debug Logging');
         expect(debugSwitch).toBeDefined();
         expect(debugSwitch.active).toBe(false);
@@ -474,7 +559,7 @@ describe('WorkflowTilingPreferences', () => {
 
         expect(shortcutsPage).toBeDefined();
         expect(shortcutsPage.groups).toHaveLength(5);
-        expect(shortcutsPage.groups[1].title).toBe('Window Focus & Position');
+        expect(shortcutsPage.groups[1].title).toBe('Window Focus &amp; Position');
         expect(shortcutsPage.groups[2].title).toBe('Window State');
         expect(shortcutsPage.groups[3].title).toBe('Workspace Operations');
         expect(shortcutsPage.groups[4].title).toBe('Monitor Actions');
@@ -508,6 +593,204 @@ describe('WorkflowTilingPreferences', () => {
         expect(addedPages.some(p => p.title === 'Base JSON')).toBe(false);
     });
 
+    describe('Keyboard Shortcuts page', () => {
+        let page;
+        const rowOf = (key) =>
+            page.groups.flatMap((g) => g.rows).flatMap((r) => [r, ...(r.rows ?? [])]).find((r) => r.keyName === key);
+        const hint = () => page.groups[0].rows[0];
+        const modeRow = (title) => page.groups[1].rows.find((r) => r.title === title);
+        const choose = (title, index) => {
+            modeRow(title).dropDown.selected = index;
+            modeRow(title).dropDown.emit('notify::selected');
+        };
+        const custom = () => {
+            mockSettingsStore['focus-window-mode'] = 'custom';
+            mockSettingsStore['keybindings-mode'] = 'custom';
+        };
+        const open = () => {
+            prefs.fillPreferencesWindow(mockWindow);
+            page = addedPages.find((p) => p.title === 'Keyboard Shortcuts');
+        };
+
+        it('shows one row per mode that picks it and folds out the keys it binds', () => {
+            open();
+            const dirs = ['left', 'right', 'up', 'down'];
+            expect(page.groups[1].rows.map((r) => r.title)).toEqual(['Focus Mode', 'Swap Mode']);
+            expect(modeRow('Swap Mode').rows.map((r) => r.keyName)).toEqual([
+                ...dirs.map((d) => `move-window-${d}`),
+                ...dirs.map((d) => `custom-move-window-${d}`),
+            ]);
+            expect(modeRow('Swap Mode').dropDown.selected).toBe(0);
+            expect(modeRow('Swap Mode').enable_expansion).toBe(false); // None has no keys
+            expect(rowOf('move-window-left').visible).toBe(false);
+            expect(rowOf('custom-move-window-left').visible).toBe(false);
+
+            choose('Swap Mode', 5);
+            expect(mockSettingsStore['keybindings-mode']).toBe('custom');
+            expect(modeRow('Swap Mode').expanded).toBe(true); // own keys, open to edit
+            expect(rowOf('custom-move-window-left').visible).toBe(true);
+            expect(rowOf('move-window-left').visible).toBe(false);
+            expect(rowOf('custom-focus-window-left').visible).toBe(false);
+        });
+
+        it('offers every preset in both modes, folded, without losing own keys', () => {
+            mockSettingsStore['custom-move-window-up'] = ['<Super>k'];
+            open();
+            const all = [
+                'None',
+                'Ctrl + Shift + H/J/K/L',
+                'Ctrl + Super + H/J/K/L',
+                'Super + Arrows',
+                'Super + Shift + Arrows',
+                'Custom',
+            ];
+            expect(modeRow('Focus Mode').dropDown.model.strings).toEqual(all);
+            expect(modeRow('Swap Mode').dropDown.model.strings).toEqual(all);
+
+            choose('Swap Mode', 3);
+            expect(rowOf('move-window-up').shortcutLabel.accelerator).toBe('<Super>Up');
+            expect(rowOf('move-window-up').accelerators()).toEqual(['<Super>up']);
+            expect(mockSettingsStore['move-window-up'] ?? []).toEqual([]); // written by the Shell, not here
+            expect(modeRow('Swap Mode').enable_expansion).toBe(true);
+            expect(modeRow('Swap Mode').expanded).toBe(false); // folded until opened
+            expect(rowOf('move-window-up').visible).toBe(true);
+            expect(rowOf('move-window-up').activatable).toBe(false); // fixed keys
+            expect(rowOf('custom-move-window-up').visible).toBe(false);
+            expect(hint().visible).toBe(false);
+
+            choose('Swap Mode', 5);
+            expect(mockSettingsStore['custom-move-window-up']).toEqual(['<Super>k']);
+        });
+
+        it('writes a mode only when the selection changes it', () => {
+            mockSettingsStore['keybindings-mode'] = 'super-arrows';
+            open();
+            const write = vi.spyOn(mockSettings, 'set_string');
+            modeRow('Swap Mode').dropDown.emit('notify::selected'); // e.g. GTK notifying the first selection
+            expect(write).not.toHaveBeenCalled();
+            choose('Swap Mode', 0);
+            expect(write).toHaveBeenCalledWith('keybindings-mode', 'none');
+            write.mockRestore();
+        });
+
+        it('keeps a mode folded or open while only its keys change', () => {
+            mockSettingsStore['keybindings-mode'] = 'custom';
+            open();
+            modeRow('Swap Mode').expanded = false; // folded by the user
+            mockSettings.set_strv('custom-move-window-up', ['<Super>k']);
+            expect(modeRow('Swap Mode').expanded).toBe(false);
+            mockSettings.set_string('keybindings-mode', 'super-arrows'); // set from outside
+            expect(modeRow('Swap Mode').dropDown.selected).toBe(3);
+        });
+
+        it("shows a preset's keys even when the bound keys are stale", () => {
+            mockSettingsStore['focus-window-mode'] = 'ctrl-shift-hjkl'; // e.g. gsettings set while the extension was off
+            mockSettingsStore['focus-window-left'] = ['<Super>Left'];
+            open();
+            expect(rowOf('focus-window-left').shortcutLabel.accelerator).toBe('<Control><Shift>h');
+            expect(mockSettingsStore['focus-window-left']).toEqual(['<Super>Left']);
+            expect(rowOf('focus-window-left').visible).toBe(true);
+        });
+
+        it('shows the info box until a mode binds a key', () => {
+            open();
+            expect(hint().visible).toBe(true);
+            expect(hint().children[0].prefix.icon_name).toBe('help-about-symbolic');
+            expect(page.groups[0].description).toContain('Shortcuts inside apps are not checked');
+
+            mockSettings.set_strv('custom-focus-window-up', ['<Super><Control>Up']);
+            expect(hint().visible).toBe(true); // still None
+            mockSettings.set_string('focus-window-mode', 'custom');
+            expect(hint().visible).toBe(false);
+            mockSettings.set_strv('custom-focus-window-up', []);
+            expect(hint().visible).toBe(true);
+        });
+
+        it("warns on a mode's row when one of its keys is used elsewhere, folded or not", () => {
+            gnomeKeys.set('maximize', ['<Super>Up']);
+            mockSettingsStore['keybindings-mode'] = 'super-arrows';
+            open();
+            expect(rowOf('move-window-up').warningIcon.visible).toBe(true);
+            expect(modeRow('Swap Mode').warningIcon.visible).toBe(true);
+            expect(modeRow('Swap Mode').warningIcon.tooltip_text).toBe(
+                'Swap Window Up – Also used by: Un-/ Maximise Window',
+            );
+            expect(modeRow('Focus Mode').warningIcon.visible).toBe(false);
+
+            choose('Swap Mode', 0);
+            expect(modeRow('Swap Mode').warningIcon.visible).toBe(false);
+        });
+
+        it('ignores shortcuts hidden by their mode', () => {
+            mockSettingsStore['custom-move-window-left'] = ['<Super>x'];
+            mockSettingsStore['custom-focus-window-left'] = ['<Super>x'];
+            mockSettingsStore['focus-window-mode'] = 'custom';
+            open();
+            expect(rowOf('custom-focus-window-left').warningIcon.visible).toBe(false);
+            mockSettings.set_string('keybindings-mode', 'custom');
+            expect(rowOf('custom-focus-window-left').warningIcon.tooltip_text).toBe('Also used by: Swap Window Left');
+        });
+
+        it('warns about any key of a row used twice, in any spelling', () => {
+            custom();
+            open();
+            mockSettings.set_strv('custom-move-window-left', ['<Primary><Shift>H']);
+            mockSettings.set_strv('custom-focus-window-left', ['<Shift><Control>h']);
+            expect(rowOf('custom-move-window-left').warningIcon.visible).toBe(true);
+            expect(rowOf('custom-move-window-right').warningIcon.visible).toBe(false);
+
+            mockSettings.set_strv('custom-focus-window-left', ['<Super>x', '<Shift><Control>h']); // not shown, but bound
+            expect(rowOf('custom-move-window-left').warningIcon.visible).toBe(true);
+            mockSettings.set_strv('custom-focus-window-left', ['<Super>x']);
+            expect(rowOf('custom-move-window-left').warningIcon.visible).toBe(false);
+        });
+
+        it('re-reads GNOME shortcuts when GNOME settings change, and stops when the page is gone', () => {
+            gnomeKeys.set('switch-to-workspace-left', ['<Super><Alt>Left']);
+            mockSettingsStore['custom-move-window-left'] = ['<Alt><Super>Left'];
+            custom();
+            open();
+            expect(rowOf('custom-move-window-left').warningIcon.visible).toBe(true);
+
+            gnomeKeys.set('switch-to-workspace-left', ['<Control><Alt>Left']); // freed in GNOME Settings
+            [...gnomeListeners.values()].forEach((cb) => cb(null, 'switch-to-workspace-left'));
+            expect(rowOf('custom-move-window-left').warningIcon.visible).toBe(false);
+            expect(gnomeListeners.size).toBe(1); // not rebuilt for an ordinary key
+
+            page.emit('destroy');
+            expect(gnomeListeners.size).toBe(0);
+        });
+
+        it("checks every key of a GNOME row, not only the one it shows", () => {
+            gnomeKeys.set('maximize', ['<Super>Up', '<Alt>F10']);
+            mockSettingsStore['custom-move-window-up'] = ['<Alt>F10'];
+            custom();
+            open();
+            expect(rowOf('custom-move-window-up').warningIcon.tooltip_text).toBe('Also used by: Un-/ Maximise Window');
+            expect(rowOf('maximize').warningIcon.tooltip_text).toBe('Also used by: Swap Window Up');
+        });
+
+        it('names a GNOME key edited on this page only once', () => {
+            gnomeKeys.set('maximize', ['<Super>Up']);
+            mockSettingsStore['custom-move-window-up'] = ['<Super>Up'];
+            custom();
+            open();
+            expect(rowOf('custom-move-window-up').warningIcon.tooltip_text).toBe('Also used by: Un-/ Maximise Window');
+        });
+
+        it("warns about keys GNOME already uses, but not about a GNOME row's own key", () => {
+            gnomeKeys.set('switch-to-workspace-left', ['<Super><Alt>Left']);
+            gnomeKeys.set('maximize', ['<Super>Up']);
+            mockSettingsStore['custom-move-window-left'] = ['<Alt><Super>Left'];
+            custom();
+            open();
+            expect(rowOf('custom-move-window-left').warningIcon.tooltip_text).toBe(
+                'Also used by: GNOME switch-to-workspace-left (GNOME)',
+            );
+            expect(rowOf('maximize').warningIcon.visible).toBe(false);
+        });
+    });
+
     describe('ShortcutRow & Key Recording', () => {
         let shortcutsPage;
         let swapGroup;
@@ -516,8 +799,8 @@ describe('WorkflowTilingPreferences', () => {
         beforeEach(() => {
             prefs.fillPreferencesWindow(mockWindow);
             shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
-            swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Focus & Position');
-            testRow = swapGroup.rows.find(r => r.keyName === 'custom-move-window-left');
+            swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Focus &amp; Position');
+            testRow = swapGroup.rows.flatMap((r) => r.rows).find((r) => r.keyName === 'custom-move-window-left');
         });
 
         it('should initialize ShortcutRow with accelerator from settings', () => {
@@ -641,58 +924,9 @@ describe('WorkflowTilingPreferences', () => {
         });
     });
 
-    describe('Mode Switching and Visibility Stress Tests', () => {
-        let shortcutsPage;
-        let swapGroup;
-
+    describe('Visibility Stress Tests', () => {
         beforeEach(() => {
             prefs.fillPreferencesWindow(mockWindow);
-            shortcutsPage = addedPages.find(p => p.title === 'Keyboard Shortcuts');
-            swapGroup = shortcutsPage.groups.find(g => g.title === 'Window Focus & Position');
-        });
-
-        it('should update keybinding row visibilities when mode changes', () => {
-            const modeRow = swapGroup.rows.find(r => r instanceof mockAdw.ComboRow && r.title === 'Swap Mode');
-            const moveRows = swapGroup.rows.filter(r => r.keyName && r.keyName.startsWith('custom-move-window')); // ShortcutRows
-
-            // Initial: default mode. Move rows should be hidden
-            expect(moveRows.every(r => r.visible === false)).toBe(true);
-            expect(modeRow.subtitle).toContain('Default:');
-
-            // Switch to custom (notify selected = 1)
-            modeRow.selected = 1;
-            modeRow.emit('notify::selected');
-            expect(mockSettingsStore['keybindings-mode']).toBe('custom');
-            expect(moveRows.every(r => r.visible === true)).toBe(true);
-            expect(modeRow.subtitle).toBe('');
-
-            // Switch to disabled (notify selected = 2)
-            modeRow.selected = 2;
-            modeRow.emit('notify::selected');
-            expect(mockSettingsStore['keybindings-mode']).toBe('disabled');
-            expect(moveRows.every(r => r.visible === false)).toBe(true);
-            expect(modeRow.subtitle).toBe('');
-        });
-
-        it('should handle external settings modifications for keybindings mode visibility', () => {
-            const moveRows = swapGroup.rows.filter(r => r.keyName && r.keyName.startsWith('custom-move-window'));
-
-            // Set via settings directly
-            mockSettings.set_string('keybindings-mode', 'custom');
-            expect(moveRows.every(r => r.visible === true)).toBe(true);
-
-            mockSettings.set_string('keybindings-mode', 'disabled');
-            expect(moveRows.every(r => r.visible === false)).toBe(true);
-        });
-
-        it('should handle invalid keybindings mode values gracefully', () => {
-            const moveRows = swapGroup.rows.filter(r => r.keyName && r.keyName.startsWith('custom-move-window'));
-
-            // Set to invalid value
-            mockSettings.set_string('keybindings-mode', 'invalid-mode-value');
-            
-            // Should hide custom rows and not crash
-            expect(moveRows.every(r => r.visible === false)).toBe(true);
         });
 
         it('should toggle gaps visibility when enable-gaps setting is changed', () => {

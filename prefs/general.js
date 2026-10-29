@@ -3,9 +3,24 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 import { Logger } from '../lib/utils/logger.js';
-import { pageListener } from './rows.js';
+import { choiceRow, pageListener } from './rows.js';
 
-/** Preferences page for gaps and debugging. */
+const HOTPLUG_POLICIES = [
+    {
+        value: 'restore-by-monitor',
+        label: 'Windows stay with their monitor',
+        subtitle: 'Windows of a disconnected monitor are minimized and return when it is reconnected',
+    },
+    {
+        value: 'follow-primary',
+        label: 'Windows follow the primary monitor',
+        subtitle:
+            'The primary monitor\'s windows move to the new primary; its own windows are minimized ' +
+            'until it is secondary again',
+    },
+];
+
+/** Preferences page for gaps, monitor changes and debugging. */
 export function buildGeneralPage(settings) {
     const page = new Adw.PreferencesPage({ title: 'General', icon_name: 'preferences-system-symbolic' });
     const listen = pageListener(page, settings);
@@ -39,6 +54,14 @@ export function buildGeneralPage(settings) {
     updateGapsVisibility();
 
     page.add(gapsGroup);
+
+    // --- Monitor Change Policy Group: only relevant for setups whose monitors change ---
+    const monitorGroup = new Adw.PreferencesGroup({
+        title: 'Monitor Change Policy',
+        description: 'Mostly interesting for laptop + dock users.',
+    });
+    monitorGroup.add(choiceRow(settings, 'hotplug-policy', 'Window Placement', HOTPLUG_POLICIES));
+    page.add(monitorGroup);
 
     // --- Debug Group ---
     const debugGroup = new Adw.PreferencesGroup({ title: 'Debug' });

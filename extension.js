@@ -1,7 +1,9 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { Logger } from './lib/utils/logger.js';
+import { hasDirectionalShortcuts } from './lib/utils/shortcuts.js';
 import { Engine } from './lib/app/engine/engine.js';
 import { GSettingsConfigSource } from './lib/shell/config-source.js';
 import { MutterDisplayPort } from './lib/shell/display-port.js';
@@ -21,7 +23,6 @@ export default class WorkflowTilingExtension extends Extension {
         this._configSource = new GSettingsConfigSource(this._settings);
         this._configSource.onConfigChanged((config) => this._onConfigChanged(config));
         this._configSource.onConfigInvalid((error) => this._suspend(error));
-        this._configSource.onKeybindingsChanged(() => this._keybindings?.rebindAll());
         this._buttonHider = new MaximizeButtonHider(this._settings);
         this._buttonHider.enable();
 
@@ -44,7 +45,8 @@ export default class WorkflowTilingExtension extends Extension {
         if (this._sessionModeId) Main.sessionMode.disconnect(this._sessionModeId);
         this._sessionModeId = 0;
 
-        this._keybindings?.unbindAll();
+        this._firstRunHint?.destroy();
+        this._keybindings?.destroy();
         this._events?.unbind();
         this._engine?.destroy();
         this._indicator?.destroy();
@@ -61,6 +63,7 @@ export default class WorkflowTilingExtension extends Extension {
         this._displayPort = null;
         this._configSource = null;
         this._buttonHider = null;
+        this._firstRunHint = null;
         this._settings = null;
         this._suspended = false;
     }
@@ -86,8 +89,7 @@ export default class WorkflowTilingExtension extends Extension {
             windowPort: this._windowPort,
         });
         this._suspended = false;
-        this._keybindings.bindAll();
-        if (Main.sessionMode.isLocked) this._keybindings.suspend();
+        this._applySessionMode();
     }
 
     _onConfigChanged(config) {
@@ -109,7 +111,7 @@ export default class WorkflowTilingExtension extends Extension {
         Main.notifyError('Workflow Tiling', `Invalid layouts JSON. Tiling suspended.\n${error}`);
 
         this._events?.unbind();
-        this._keybindings?.suspend();
+        this._keybindings?.unbind();
         this._engine?.suspend();
     }
 
@@ -127,7 +129,34 @@ export default class WorkflowTilingExtension extends Extension {
     _applySessionMode() {
         if (!this._keybindings) return;
         Logger.debug(`Extension: session mode ${Main.sessionMode.currentMode}, locked ${Main.sessionMode.isLocked}`);
-        if (Main.sessionMode.isLocked || this._suspended) this._keybindings.suspend();
-        else this._keybindings.resume();
+        if (Main.sessionMode.isLocked || this._suspended) {
+            this._keybindings.unbind();
+            return;
+        }
+        this._keybindings.bind();
+        this._showFirstRunHint();
+    }
+
+    /**
+     * Once per install, while tiling runs unlocked: tells that moving and focusing windows has no shortcuts until a
+     * mode other than None is chosen. Not shown when the user already uses one.
+     */
+    _showFirstRunHint() {
+        if (this._settings.get_boolean('first-run-hint-shown')) return;
+        // Set on the first check either way: choosing None later is a decision, not a first run
+        this._settings.set_boolean('first-run-hint-shown', true);
+        if (hasDirectionalShortcuts(this._settings)) return;
+
+        const source = MessageTray.getSystemSource();
+        const notification = new MessageTray.Notification({
+            source,
+            title: 'Workflow Tiling',
+            body: 'Moving and focusing windows has no keyboard shortcuts yet. Choose a mode in the settings.',
+        });
+        notification.addAction('Open Settings', () => this.openPreferences());
+        // Kept so disable() can remove it: its action holds this extension
+        notification.connect('destroy', () => (this._firstRunHint = null));
+        this._firstRunHint = notification;
+        source.addNotification(notification);
     }
 }

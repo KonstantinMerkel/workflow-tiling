@@ -127,6 +127,12 @@ describe('Reconciler', () => {
         expect(windows.callsOf('setFrame')[0].arg).toMatchObject({ width: 1, height: 1 });
     });
 
+    it('requests at least 1x1 for the initial frame too, even without facts', () => {
+        const { state, reconciler } = setup(makeConfig(undefined, { gaps: { inner: 0, outer: 600 } }));
+        state.place(1, 1, LOC, Mode.TILED); // known to the state, not to the window port
+        expect(reconciler.desiredFrame(1)).toMatchObject({ width: 1, height: 1 });
+    });
+
     it('clamps requests to the window size limits', () => {
         const { display, windows, state, reconciler } = setup();
         windows.add(1, { sizeLimits: { min: { width: 1200, height: 100 }, max: { width: 2000, height: 600 } } });

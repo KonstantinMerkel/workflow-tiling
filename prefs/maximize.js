@@ -2,7 +2,7 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { appEntry, withEntry } from '../lib/domain/policies/override/self-maximize.js';
-import { choiceRow, pageListener } from './rows.js';
+import { choiceRow, infoBox, pageListener } from './rows.js';
 
 const SELF_MAXIMIZE_MODES = [
     { value: 'never', label: 'Never', subtitle: 'Tiled windows maximize only through the shortcuts' },
@@ -111,9 +111,18 @@ export function buildMaximizePage(settings) {
     let cachedApps = null;
     const apps = () => (cachedApps ??= installedApps());
 
+    const infoGroup = new Adw.PreferencesGroup();
+    infoGroup.add(
+        infoBox(
+            'The maximize and fullscreen shortcuts always work. Only full maximizing and fullscreen are supported, ' +
+                'not maximizing to one half of the screen.',
+        ),
+    );
+    page.add(infoGroup);
+
     const selfGroup = new Adw.PreferencesGroup({
         title: 'Apps Maximizing Themselves',
-        description: 'Title bar, F11 or opening maximized. The maximize shortcuts always work.',
+        description: 'Title bar, F11 or opening maximized.',
     });
     selfGroup.add(choiceRow(settings, 'self-maximize-mode', 'Allowed Apps', SELF_MAXIMIZE_MODES));
     page.add(selfGroup);

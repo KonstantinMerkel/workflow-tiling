@@ -237,6 +237,23 @@ export default [
         },
     },
     {
+        // Code both processes run that needs GSettings: Gio and GLib only, which exist in both
+        files: ["lib/gio/**/*.js"],
+        rules: {
+            "no-restricted-imports": restrictedImports([
+                {
+                    regex: "^gi://(?!(Gio|GLib)$)",
+                    message: "lib/gio runs in the Shell and in prefs. Gio and GLib only; the rest is one process's.",
+                },
+                {
+                    regex: "^resource://",
+                    message: "lib/gio importing GNOME Shell resources? Prefs cannot load them. lib/shell's job.",
+                },
+                noLayer(["app", "shell"], "lib/gio is shared with prefs, which may not reach lib/app or lib/shell."),
+            ]),
+        },
+    },
+    {
         files: ["lib/utils/**/*.js"],
         rules: {
             "no-restricted-imports": restrictedImports(noGnome("lib/utils (used by prefs too)")),

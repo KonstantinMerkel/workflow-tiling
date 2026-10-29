@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
+import { Logger } from '../../lib/utils/logger.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { classifyGrab, ShellEvents } from '../../lib/shell/shell-events.js';
 import { GSettingsConfigSource } from '../../lib/shell/config-source.js';
 import { MutterWindowPort } from '../../lib/shell/window-port.js';
 import { MaximizeButtonHider, withoutMaximize } from '../../lib/shell/button-layout.js';
 import { MutterDisplayPort } from '../../lib/shell/display-port.js';
-import { ShadowManager } from '../../lib/shell/shadows.js';
 import { KeybindingAdapter } from '../../lib/shell/keybindings.js';
 import { ALL_WORKSPACES, Mode } from '../../lib/domain/types.js';
 import { DEFAULT_LAYOUTS } from '../helpers/fakes.js';
@@ -22,6 +24,9 @@ function fakeSettings(values) {
             store[k] = v;
         }),
         get_strv: (k) => store[k] ?? [],
+        set_strv: vi.fn((k, v) => {
+            store[k] = v;
+        }),
         connect: (signal, cb) => {
             (listeners[signal] ??= []).push(cb);
             return signal;
@@ -129,15 +134,6 @@ describe('GSettingsConfigSource', () => {
         settings.store['custom-layouts'] = JSON.stringify(JSON.parse(DEFAULT_LAYOUTS), null, 2); // same layouts, new text
         settings.emit('custom-layouts');
         expect(changed.mock.calls[1][0].escalator).not.toBe(escalator);
-    });
-
-    it('fires the keybinding callback separately', () => {
-        const settings = fakeSettings(base);
-        const source = new GSettingsConfigSource(settings);
-        const rebind = vi.fn();
-        source.onKeybindingsChanged(rebind);
-        settings.emit('move-window-left');
-        expect(rebind).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -320,84 +316,133 @@ describe('ShellEvents', () => {
     });
 });
 
-describe('ShadowManager', () => {
-    let settings;
-    let native;
+describe('KeybindingAdapter', () => {
+    const windowPort = { idOf: (w) => w?.get_id() ?? null };
+    const bound = () => Main.wm.addKeybinding.mock.calls.map(([key]) => key);
+    let warn;
 
     beforeEach(() => {
-        settings = fakeSettings({ 'shadowed-keybindings': '{}', 'move-window-left': ['<Super><Alt>Left'] });
-        const nativeStore = { 'switch-to-workspace-1': ['<Super>1'], 'conflict-key': ['<Alt><Super>Left', '<Super>Up'] };
-        native = {
-            schema_id: 'org.gnome.desktop.wm.keybindings',
-            list_keys: () => Object.keys(nativeStore),
-            get_value: () => ({ get_type_string: () => 'as' }),
-            get_strv: (k) => nativeStore[k],
-            set_strv: vi.fn((k, v) => {
-                nativeStore[k] = v;
-            }),
-        };
-    });
-
-    it('restores protected keys and keeps backups of schemas that are not installed', () => {
-        settings.store['shadowed-keybindings'] = JSON.stringify({
-            'org.gnome.desktop.wm.keybindings': { 'conflict-key': ['<Super>X'] },
-            'org.example.missing': { foo: ['<Super>Y'] },
-        });
-        const shadows = new ShadowManager(settings, ['conflict-key']);
-        shadows._nativeSchemas = [native];
-        shadows.restoreAll();
-        expect(native.set_strv).toHaveBeenCalledWith('conflict-key', ['<Super>X']);
-        expect(JSON.parse(settings.store['shadowed-keybindings'])).toEqual({ 'org.example.missing': { foo: ['<Super>Y'] } });
-    });
-
-    it('normalizes accelerators', () => {
-        const shadows = new ShadowManager(settings);
-        expect(shadows._normalize('<Super><Alt>Left')).toBe('<Alt><Super>Left');
-        expect(shadows._normalize('<Primary><Alt>t')).toBe('<Alt><Control>t');
-        expect(shadows._normalize('<mod1><mod4>Right')).toBe('<Alt><Super>Right');
-        expect(shadows._normalize(null)).toBe('');
-    });
-
-    it('backs up before shadowing, restores, and respects protected keys', () => {
-        const shadows = new ShadowManager(settings);
-        shadows._nativeSchemas = [native];
-        shadows.shadowShortcuts(['move-window-left']);
-        expect(native.set_strv).toHaveBeenCalledWith('conflict-key', ['<Super>Up']);
-        expect(JSON.parse(settings.store['shadowed-keybindings'])['org.gnome.desktop.wm.keybindings']).toEqual({
-            'conflict-key': ['<Alt><Super>Left', '<Super>Up'],
-        });
-
-        shadows.restoreAll();
-        expect(native.set_strv).toHaveBeenLastCalledWith('conflict-key', ['<Alt><Super>Left', '<Super>Up']);
-        expect(settings.store['shadowed-keybindings']).toBe('{}');
-
-        const guarded = new ShadowManager(settings, ['conflict-key']);
-        guarded._nativeSchemas = [native];
-        native.set_strv.mockClear();
-        guarded.shadowShortcuts(['move-window-left']);
-        expect(native.set_strv).not.toHaveBeenCalled();
-    });
-});
-
-describe('KeybindingAdapter', () => {
-    it('takes over native window-state shortcuts and routes them to toggleOverride', () => {
-        const settings = fakeSettings({ 'keybindings-mode': 'default', 'focus-window-mode': 'disabled', 'shadowed-keybindings': '{}' });
-        const engine = { toggleOverride: vi.fn(), moveDirection: vi.fn() };
-        const adapter = new KeybindingAdapter({ settings, engine, windowPort: { idOf: (w) => w?.get_id() ?? null } });
+        Main.wm.addKeybinding.mockClear();
+        Main.wm.removeKeybinding.mockClear();
         Meta.keybindings_set_custom_handler.mockClear();
-        adapter.bindAll();
+        warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        // mockReset brings back a vi.fn's own implementation; restoreAllMocks undoes the spies
+        Main.wm.addKeybinding.mockReset();
+        Gio.SettingsSchemaSource.get_default.mockReset();
+        vi.restoreAllMocks();
+    });
+
+    it('binds its own shortcuts and takes over only the native window-state actions', () => {
+        const engine = { toggleOverride: vi.fn(), moveDirection: vi.fn() };
+        const adapter = new KeybindingAdapter({ settings: fakeSettings({}), engine, windowPort });
+        adapter.bind();
 
         const handlers = Object.fromEntries(Meta.keybindings_set_custom_handler.mock.calls);
-        expect(Object.keys(handlers)).toEqual(
-            expect.arrayContaining(['toggle-tiled-left', 'toggle-tiled-right', 'maximize', 'toggle-maximized', 'toggle-fullscreen']),
-        );
+        expect(Object.keys(handlers).sort()).toEqual(['maximize', 'toggle-fullscreen', 'toggle-maximized', 'unmaximize']);
         handlers['toggle-maximized'](null, fakeWindow(3));
-        handlers['toggle-tiled-left'](null, fakeWindow(3));
         expect(engine.toggleOverride).toHaveBeenCalledWith(3, 'maximize');
+
+        const bindings = Object.fromEntries(Main.wm.addKeybinding.mock.calls.map(([key, , , , cb]) => [key, cb]));
+        expect(Object.keys(bindings)).toEqual(expect.arrayContaining(['move-window-left', 'focus-window-down', 'shortcut-close-monitor']));
+        expect(Object.keys(bindings).some((key) => key.startsWith('custom-'))).toBe(false); // own keys are never bound directly
+        bindings['move-window-left'](null, fakeWindow(3));
         expect(engine.moveDirection).toHaveBeenCalledWith(3, 'left');
 
-        adapter.suspend();
+        adapter.unbind();
         expect(Meta.keybindings_set_custom_handler).toHaveBeenLastCalledWith(expect.any(String), null);
+        expect(Main.wm.removeKeybinding).toHaveBeenCalledWith('move-window-left');
+    });
+
+    it('writes the keys of each mode into the bound keys, from anywhere and without touching own keys', () => {
+        const settings = fakeSettings({ 'keybindings-mode': 'none', 'custom-move-window-up': ['<Super>k'] });
+        const adapter = new KeybindingAdapter({ settings, engine: {}, windowPort });
+        expect(settings.get_strv('move-window-up')).toEqual([]);
+
+        settings.store['keybindings-mode'] = 'super-arrows'; // e.g. gsettings set, prefs closed
+        settings.emit('keybindings-mode');
+        expect(settings.store['move-window-up']).toEqual(['<Super>Up']);
+        expect(settings.store['custom-move-window-up']).toEqual(['<Super>k']);
+
+        settings.store['keybindings-mode'] = 'custom';
+        settings.emit('keybindings-mode');
+        expect(settings.store['move-window-up']).toEqual(['<Super>k']);
+        settings.store['custom-move-window-up'] = ['<Super>i'];
+        settings.emit('custom-move-window-up');
+        expect(settings.store['move-window-up']).toEqual(['<Super>i']);
+
+        adapter.destroy();
+        settings.store['keybindings-mode'] = 'none';
+        settings.emit('keybindings-mode');
+        expect(settings.store['move-window-up']).toEqual(['<Super>i']); // no longer listening
+    });
+
+    it('sets a bound key written from outside back to its mode, and leaves a matching one alone', () => {
+        const settings = fakeSettings({ 'keybindings-mode': 'super-arrows' });
+        new KeybindingAdapter({ settings, engine: {}, windowPort });
+        settings.set_strv.mockClear();
+
+        settings.store['move-window-up'] = []; // gsettings reset
+        settings.emit('move-window-up');
+        expect(settings.store['move-window-up']).toEqual(['<Super>Up']);
+        expect(settings.set_strv).toHaveBeenCalledTimes(1);
+
+        settings.emit('move-window-up'); // the change signal of that write
+        expect(settings.set_strv).toHaveBeenCalledTimes(1);
+    });
+
+    it('never records, and so never removes, a binding whose name another extension holds', () => {
+        Main.wm.addKeybinding.mockImplementation((key) => (key === 'move-window-left' ? Meta.KeyBindingAction.NONE : 7));
+        const adapter = new KeybindingAdapter({ settings: fakeSettings({}), engine: {}, windowPort });
+        adapter.bind();
+        adapter.unbind();
+        const removed = Main.wm.removeKeybinding.mock.calls.map(([key]) => key);
+        expect(removed).not.toContain('move-window-left');
+        expect(removed).toContain('move-window-right');
+    });
+
+    it('logs keys GNOME or another of its own shortcuts also uses, once per change of the keys', () => {
+        Gio.SettingsSchemaSource.get_default.mockReturnValue({
+            lookup: (id) =>
+                id === 'org.gnome.desktop.wm.keybindings'
+                    ? {
+                          list_keys: () => ['toggle-tiled-left'],
+                          get_key: () => ({ get_value_type: () => ({ dup_string: () => 'as' }), get_summary: () => 'View split on left' }),
+                      }
+                    : null,
+        });
+        vi.spyOn(Gio, 'Settings').mockImplementation(function ({ schema_id: schemaId }) {
+            return { schema_id: schemaId, get_strv: () => ['<Super>Left'] };
+        });
+        const settings = fakeSettings({ 'keybindings-mode': 'super-shift-arrows', 'focus-window-mode': 'super-shift-arrows' });
+        settings.store['shortcut-close-monitor'] = ['<Super>Left'];
+        const adapter = new KeybindingAdapter({ settings, engine: {}, windowPort });
+        adapter.bind();
+        expect(warn).toHaveBeenCalledWith('Shortcut move-window-left (<Shift><Super>left) is also used by focus-window-left');
+        expect(warn).toHaveBeenCalledWith('Shortcut shortcut-close-monitor (<Super>left) is also used by View split on left (GNOME)');
+
+        warn.mockClear();
+        adapter.bind(); // unlock: keys unchanged, nothing read or logged again
+        expect(warn).not.toHaveBeenCalled();
+
+        settings.store['shortcut-close-workspace'] = ['<Super>Left'];
+        settings.emit('shortcut-close-workspace');
+        expect(warn).toHaveBeenCalledWith(
+            'Shortcut shortcut-close-workspace (<Super>left) is also used by shortcut-close-monitor, View split on left (GNOME)',
+        );
+    });
+
+    it('keeps its bindings when the conflict check fails', () => {
+        Gio.SettingsSchemaSource.get_default.mockImplementation(() => {
+            throw new Error('broken schema');
+        });
+        const settings = fakeSettings({ 'keybindings-mode': 'super-arrows' });
+        const adapter = new KeybindingAdapter({ settings, engine: {}, windowPort });
+        expect(() => adapter.bind()).not.toThrow();
+        expect(bound()).toContain('move-window-left');
+        expect(warn).toHaveBeenCalledWith('Failed to check shortcuts for conflicts', expect.any(Error));
     });
 });
 

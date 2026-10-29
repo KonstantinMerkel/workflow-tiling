@@ -122,6 +122,7 @@ vi.mock('gi://Meta', () => ({
             DIALOG: 3,
             UTILITY: 2
         },
+        KeyBindingAction: { NONE: 0 },
         KeyBindingFlags: {
             IGNORE_AUTOREPEAT: 1
         },

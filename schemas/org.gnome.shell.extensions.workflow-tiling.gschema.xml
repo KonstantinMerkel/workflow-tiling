@@ -67,11 +67,6 @@
       <description>'restore-by-monitor': windows stay with their monitor and return when it is reconnected. 'follow-primary': the primary monitor's windows move to whichever monitor becomes primary.</description>
     </key>
 
-    <key name="keybindings-mode" type="s">
-      <default>'default'</default>
-      <summary>Keybindings Mode</summary>
-      <description>Use 'default' for rigid Super+Arrows, or 'custom' for custom bindings.</description>
-    </key>
     <key name="inner-gaps" type="i">
       <default>6</default>
       <summary>Inner Gaps</summary>
@@ -82,93 +77,112 @@
       <summary>Outer Gaps</summary>
       <description>Gap size between windows and screen edges.</description>
     </key>
+    <key name="keybindings-mode" type="s">
+      <choices>
+        <choice value="none"/>
+        <choice value="ctrl-shift-hjkl"/>
+        <choice value="ctrl-super-hjkl"/>
+        <choice value="super-arrows"/>
+        <choice value="super-shift-arrows"/>
+        <choice value="custom"/>
+      </choices>
+      <default>'none'</default>
+      <summary>Swap Shortcuts Mode</summary>
+      <description>'none': no shortcuts for swapping windows (default). A preset binds its fixed keys; 'custom' binds the custom-move-window-* keys. The extension writes the keys of the mode into move-window-*.</description>
+    </key>
     <key name="move-window-left" type="as">
-      <default><![CDATA[['<Super>Left']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Move Window Left</summary>
-      <description>Swap active window with the one to its left.</description>
+      <description>The keys bound for this action, written by the extension from keybindings-mode; set your own in custom-move-window-left.</description>
     </key>
     <key name="move-window-right" type="as">
-      <default><![CDATA[['<Super>Right']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Move Window Right</summary>
-      <description>Swap active window with the one to its right.</description>
+      <description>The keys bound for this action, written by the extension from keybindings-mode; set your own in custom-move-window-right.</description>
     </key>
     <key name="move-window-up" type="as">
-      <default><![CDATA[['<Super>Up']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Move Window Up</summary>
-      <description>Swap active window with the one above it.</description>
+      <description>The keys bound for this action, written by the extension from keybindings-mode; set your own in custom-move-window-up.</description>
     </key>
     <key name="move-window-down" type="as">
-      <default><![CDATA[['<Super>Down']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Move Window Down</summary>
-      <description>Swap active window with the one below it.</description>
+      <description>The keys bound for this action, written by the extension from keybindings-mode; set your own in custom-move-window-down.</description>
     </key>
     <key name="custom-move-window-left" type="as">
-      <default><![CDATA[['<Super>Left']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Move Window Left</summary>
-      <description>Custom swap active window with the one to its left.</description>
+      <description>Your own keys for this action, bound while keybindings-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
     <key name="custom-move-window-right" type="as">
-      <default><![CDATA[['<Super>Right']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Move Window Right</summary>
-      <description>Custom swap active window with the one to its right.</description>
+      <description>Your own keys for this action, bound while keybindings-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
     <key name="custom-move-window-up" type="as">
-      <default><![CDATA[['<Super>Up']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Move Window Up</summary>
-      <description>Custom swap active window with the one above it.</description>
+      <description>Your own keys for this action, bound while keybindings-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
     <key name="custom-move-window-down" type="as">
-      <default><![CDATA[['<Super>Down']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Move Window Down</summary>
-      <description>Custom swap active window with the one below it.</description>
+      <description>Your own keys for this action, bound while keybindings-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
 
     <key name="focus-window-mode" type="s">
-      <default>'default'</default>
-      <summary>Focus Window Keybindings Mode</summary>
-      <description>Mode for focus window keybindings (default or custom).</description>
+      <choices>
+        <choice value="none"/>
+        <choice value="ctrl-shift-hjkl"/>
+        <choice value="ctrl-super-hjkl"/>
+        <choice value="super-arrows"/>
+        <choice value="super-shift-arrows"/>
+        <choice value="custom"/>
+      </choices>
+      <default>'none'</default>
+      <summary>Focus Shortcuts Mode</summary>
+      <description>'none': no shortcuts for focusing windows (default). A preset binds its fixed keys; 'custom' binds the custom-focus-window-* keys. The extension writes the keys of the mode into focus-window-*.</description>
     </key>
-
     <key name="focus-window-left" type="as">
-      <default><![CDATA[['<Primary><Shift>h']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Focus Window Left</summary>
-      <description>Focus window to the left.</description>
+      <description>The keys bound for this action, written by the extension from focus-window-mode; set your own in custom-focus-window-left.</description>
     </key>
     <key name="focus-window-right" type="as">
-      <default><![CDATA[['<Primary><Shift>l']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Focus Window Right</summary>
-      <description>Focus window to the right.</description>
+      <description>The keys bound for this action, written by the extension from focus-window-mode; set your own in custom-focus-window-right.</description>
     </key>
     <key name="focus-window-up" type="as">
-      <default><![CDATA[['<Primary><Shift>k']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Focus Window Up</summary>
-      <description>Focus window above.</description>
+      <description>The keys bound for this action, written by the extension from focus-window-mode; set your own in custom-focus-window-up.</description>
     </key>
     <key name="focus-window-down" type="as">
-      <default><![CDATA[['<Primary><Shift>j']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Focus Window Down</summary>
-      <description>Focus window below.</description>
+      <description>The keys bound for this action, written by the extension from focus-window-mode; set your own in custom-focus-window-down.</description>
     </key>
-
     <key name="custom-focus-window-left" type="as">
-      <default><![CDATA[['<Primary><Shift>h']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Focus Window Left</summary>
-      <description>Custom focus window to the left.</description>
+      <description>Your own keys for this action, bound while focus-window-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
     <key name="custom-focus-window-right" type="as">
-      <default><![CDATA[['<Primary><Shift>l']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Focus Window Right</summary>
-      <description>Custom focus window to the right.</description>
+      <description>Your own keys for this action, bound while focus-window-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
     <key name="custom-focus-window-up" type="as">
-      <default><![CDATA[['<Primary><Shift>k']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Focus Window Up</summary>
-      <description>Custom focus window above.</description>
+      <description>Your own keys for this action, bound while focus-window-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
     <key name="custom-focus-window-down" type="as">
-      <default><![CDATA[['<Primary><Shift>j']]]></default>
+      <default><![CDATA[[]]]></default>
       <summary>Custom Focus Window Down</summary>
-      <description>Custom focus window below.</description>
+      <description>Your own keys for this action, bound while focus-window-mode is 'custom'; kept while a preset is chosen.</description>
     </key>
 
     <key name="shortcut-close-monitor" type="as">
@@ -201,15 +215,16 @@
       <description>Unminimize all windows on the active workspace.</description>
     </key>
 
+    <key name="first-run-hint-shown" type="b">
+      <default>false</default>
+      <summary>First-Run Hint Shown</summary>
+      <description>Internal: the notification that move and focus shortcuts are not set yet was shown once.</description>
+    </key>
+
     <key name="custom-layouts" type="s">
       <default><![CDATA['{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}],"2":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":100,"id":1}],"3":[{"x":0,"y":0,"w":50,"h":100,"id":0},{"x":50,"y":0,"w":50,"h":50,"id":1},{"x":50,"y":50,"w":50,"h":50,"id":2}]}']]></default>
       <summary>Custom Layouts JSON</summary>
       <description>JSON string defining custom window layouts.</description>
-    </key>
-    <key name="shadowed-keybindings" type="s">
-      <default><![CDATA['{}']]></default>
-      <summary>Shadowed Native Keybindings</summary>
-      <description>Internal state tracking GNOME native keybindings that have been temporarily removed to prevent conflicts with custom shortcuts.</description>
     </key>
 
   </schema>
