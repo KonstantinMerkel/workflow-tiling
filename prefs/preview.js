@@ -3,96 +3,11 @@ import Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
 import { LayoutParser } from '../lib/domain/layout/parser.js';
-import {
-    SPAN,
-    toDraft,
-    cutAt,
-    moveCut,
-    sizeRange,
-    resizeSlot,
-    slotAt,
-    splitSlot,
-    splitLargest,
-    slotColor,
-} from './draft.js';
+import { SPAN, toDraft, cutAt, moveCut, sizeRange, resizeSlot, slotColor } from './draft.js';
+import { drawLayout, toPercent } from './layout-canvas.js';
+import { openSplitDialog } from './split-dialog.js';
 
-const PAD = 8; // monitor bezel and its distance to the widget border, in px
-const GAP = 4; // gap between drawn slots, in px
 const GRAB = 8; // distance in px within which a cut can be grabbed
-
-function monitorAspect() {
-    const monitors = Gdk.Display.get_default()?.get_monitors();
-    const rect = monitors?.get_n_items() > 0 ? monitors.get_item(0).get_geometry() : null;
-    return rect?.width > 0 && rect?.height > 0 ? rect.width / rect.height : 16 / 10;
-}
-
-// Draws a monitor holding `slots` centred in a width×height area and returns the pixel frame
-// {x, y, w, h} that maps 0..100 percent, for hit-testing pointer positions against the drawing.
-function drawLayout(cr, width, height, slots, highlight = -1) {
-    const aspect = monitorAspect();
-    const mw = Math.min(width - 2 * PAD, (height - 2 * PAD) * aspect);
-    const mh = mw / aspect;
-    const mx = (width - mw) / 2;
-    const my = (height - mh) / 2;
-    cr.setSourceRGBA(0.12, 0.12, 0.14, 1);
-    cr.rectangle(mx, my, mw, mh);
-    cr.fillPreserve();
-    cr.setSourceRGBA(0.25, 0.25, 0.28, 1);
-    cr.setLineWidth(2);
-    cr.stroke();
-
-    const frame = { x: mx + PAD, y: my + PAD, w: mw - 2 * PAD, h: mh - 2 * PAD };
-    slots.forEach((s, i) => {
-        const x = frame.x + (frame.w * s.x) / 100 + GAP / 2;
-        const y = frame.y + (frame.h * s.y) / 100 + GAP / 2;
-        const w = (frame.w * s.w) / 100 - GAP;
-        const h = (frame.h * s.h) / 100 - GAP;
-        if (w <= 0 || h <= 0) return;
-
-        const r = 4;
-        cr.newSubPath();
-        cr.arc(x + r, y + r, r, Math.PI, 1.5 * Math.PI);
-        cr.arc(x + w - r, y + r, r, 1.5 * Math.PI, 2 * Math.PI);
-        cr.arc(x + w - r, y + h - r, r, 0, 0.5 * Math.PI);
-        cr.arc(x + r, y + h - r, r, 0.5 * Math.PI, Math.PI);
-        cr.closePath();
-        const [red, green, blue] = slotColor(s.id);
-        cr.setSourceRGBA(red, green, blue, i === highlight ? 1 : 0.8);
-        cr.fillPreserve();
-        cr.setSourceRGBA(1, 1, 1, i === highlight ? 0.9 : 0.3);
-        cr.setLineWidth(i === highlight ? 2.5 : 1.5);
-        cr.stroke();
-
-        cr.setSourceRGBA(1, 1, 1, 1);
-        cr.selectFontFace('Sans', 0, 0);
-        for (const [text, size, dy] of [
-            [`${s.id + 1}`, 14, -6],
-            [`${s.w}%×${s.h}%`, 9, 10],
-        ]) {
-            cr.setFontSize(size);
-            const ext = cr.textExtents(text);
-            cr.moveTo(x + w / 2 - ext.width / 2 - ext.x_bearing, y + h / 2 - ext.height / 2 - ext.y_bearing + dy);
-            cr.showText(text);
-        }
-    });
-    return frame;
-}
-
-// Dashed line where slot `s` would be split at `pos` percent along `axis`.
-function drawCut(cr, frame, s, axis, pos) {
-    const at = Math.round(pos);
-    const [x1, y1, x2, y2] = axis === 'x' ? [at, s.y, at, s.y + s.h] : [s.x, at, s.x + s.w, at];
-    cr.setSourceRGBA(1, 1, 1, 0.8);
-    cr.setLineWidth(2);
-    cr.setDash([6, 4], 0);
-    cr.moveTo(frame.x + (frame.w * x1) / 100, frame.y + (frame.h * y1) / 100);
-    cr.lineTo(frame.x + (frame.w * x2) / 100, frame.y + (frame.h * y2) / 100);
-    cr.stroke();
-}
-
-function toPercent(frame, px, py) {
-    return { x: ((px - frame.x) / frame.w) * 100, y: ((py - frame.y) / frame.h) * 100 };
-}
 
 function arrow() {
     return new Gtk.Image({ icon_name: 'pan-down-symbolic', css_classes: ['dim-label'], icon_size: Gtk.IconSize.LARGE });
@@ -413,8 +328,7 @@ export const LayoutPreviewPage = GObject.registerClass(
             dialog.present(parent);
         }
 
-        // Lets the user pick a slot of the `baseCount` layout and a position to split it at.
-        // onSplit receives the resulting draft for baseCount + 1 windows.
+        // Opens the split dialog on the `baseCount` layout; nothing to split when it is missing or invalid.
         _openSplitDialog(baseCount, parent, onSplit) {
             let base;
             try {
@@ -422,111 +336,7 @@ export const LayoutPreviewPage = GObject.registerClass(
             } catch {
                 return;
             }
-            if (!base) return;
-
-            const dialog = new Adw.Window({
-                title: `Split Layout for ${baseCount + 1} Windows`,
-                modal: true,
-                transient_for: parent,
-                default_width: 500,
-                default_height: 500,
-            });
-            const accept = (slots) => {
-                if (!slots) return;
-                onSplit(slots);
-                dialog.close();
-            };
-
-            const headerBar = new Adw.HeaderBar();
-            const stop = new Gtk.Button({ label: 'Stop', valign: Gtk.Align.CENTER });
-            stop.connect('clicked', () => dialog.close());
-            const halved = splitLargest(base);
-            const largest = new Gtk.Button({
-                label: 'Split Largest',
-                tooltip_text: halved
-                    ? 'Halve the largest slot and continue editing'
-                    : 'The largest slot is too small to halve',
-                sensitive: halved !== null,
-                valign: Gtk.Align.CENTER,
-                css_classes: ['suggested-action'],
-            });
-            largest.connect('clicked', () => accept(halved));
-            headerBar.pack_start(stop);
-            headerBar.pack_end(largest);
-
-            const content = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_start: 18,
-                margin_end: 18,
-                margin_top: 12,
-                margin_bottom: 18,
-            });
-            content.append(
-                new Gtk.Label({
-                    label:
-                        'Select split direction and click inside any slot ' +
-                        `of the ${baseCount}-window layout to split it. The split can be adjusted afterwards.`,
-                    css_classes: ['title-4'],
-                    justify: Gtk.Justification.CENTER,
-                    wrap: true,
-                }),
-            );
-
-            let axis = 'x';
-            let hover = null; // pointer position in percent
-            let frame = null;
-            const canvas = new Gtk.DrawingArea({
-                width_request: 320,
-                height_request: 200,
-                hexpand: true,
-                vexpand: true,
-            });
-
-            const directions = new Gtk.Box({ halign: Gtk.Align.CENTER, css_classes: ['linked'] });
-            const vertical = new Gtk.ToggleButton({ label: 'Vertical Split', active: true });
-            const horizontal = new Gtk.ToggleButton({ label: 'Horizontal Split', group: vertical });
-            vertical.connect('toggled', () => {
-                axis = vertical.active ? 'x' : 'y';
-                canvas.queue_draw();
-            });
-            directions.append(vertical);
-            directions.append(horizontal);
-            content.append(directions);
-            content.append(canvas);
-
-            canvas.set_draw_func((_area, cr, w, h) => {
-                const k = hover ? slotAt(base, hover.x, hover.y) : -1;
-                frame = drawLayout(cr, w, h, base, k);
-                if (k >= 0 && splitSlot(base, k, axis, hover[axis])) drawCut(cr, frame, base[k], axis, hover[axis]);
-                cr.$dispose();
-            });
-
-            const motion = new Gtk.EventControllerMotion();
-            motion.connect('motion', (_c, x, y) => {
-                hover = frame ? toPercent(frame, x, y) : null;
-                canvas.queue_draw();
-            });
-            motion.connect('leave', () => {
-                hover = null;
-                canvas.queue_draw();
-            });
-            canvas.add_controller(motion);
-
-            const click = new Gtk.GestureClick();
-            click.connect('pressed', (_g, _n, x, y) => {
-                if (!frame) return;
-                const p = toPercent(frame, x, y);
-                const k = slotAt(base, p.x, p.y);
-                if (k >= 0) accept(splitSlot(base, k, axis, p[axis]));
-            });
-            canvas.add_controller(click);
-
-            const root = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
-            root.append(headerBar);
-            root.append(content);
-            dialog.set_content(root);
-            dialog.present();
+            if (base) openSplitDialog(base, parent, onSplit);
         }
     },
 );
