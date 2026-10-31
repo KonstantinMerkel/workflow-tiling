@@ -1,123 +1,179 @@
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-import Gio from 'gi://Gio';
-import { TilingController } from './lib/controller.js';
-import { SignalListener } from './lib/signals.js';
-import { SettingsManager } from './lib/settings.js';
-import { Logger } from './lib/logger.js';
-import { KeybindingManager } from './lib/keybindings.js';
+import { Logger } from './lib/utils/logger.js';
+import { hasDirectionalShortcuts } from './lib/utils/shortcuts.js';
+import { Engine } from './lib/app/engine/engine.js';
+import { GSettingsConfigSource } from './lib/shell/config-source.js';
+import { MutterDisplayPort } from './lib/shell/display-port.js';
+import { MutterWindowPort } from './lib/shell/window-port.js';
+import { ShellEvents } from './lib/shell/shell-events.js';
+import { KeybindingAdapter } from './lib/shell/keybindings.js';
+import { StIndicator } from './lib/shell/st-indicator.js';
+import { MaximizeButtonHider } from './lib/shell/button-layout.js';
 
 /**
- * Main extension class. Manages controller and signals.
+ * Composition root: creates every Shell object and the Engine, and destroys them in reverse order.
  */
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import { LayoutParser } from './lib/layout.js';
-
 export default class WorkflowTilingExtension extends Extension {
+    /**
+     * GNOME marks an extension whose enable() throws as failed and never calls disable(), so whatever was set up so
+     * far is undone here. disable() skips every part that was never built (each is assigned only once complete).
+     */
     enable() {
-        Logger.info(`Enabling ${this.metadata.name}`);
-        this._settings = new SettingsManager(this);
-        this._controller = new TilingController(this._settings);
-        this._signals = new SignalListener(this._controller);
-        this._keybindings = new KeybindingManager(this._controller);
-        
-        this._isActive = false;
-        this._wasSuspended = false;
-
-        this._isActive = false;
-        this._wasSuspended = false;
-
         try {
-            this._wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.preferences' });
-            let currentLayout = this._wmSettings.get_string('button-layout');
-            if (currentLayout.includes('maximize')) {
-                let newLayout = currentLayout.replace(/maximize,?/g, '').replace(/,maximize/g, '');
-                this._wmSettings.set_string('button-layout', newLayout);
-            }
+            this._enable();
         } catch (e) {
-            Logger.warn('Failed to hide maximize button', e);
-        }
-
-        this._settings.onSettingsChanged = () => {
-            if (this._applyCustomLayouts()) {
-                this._controller.hydrate();
+            try {
+                this.disable();
+            } catch (cleanupError) {
+                Logger.error('Cleanup after a failed enable failed', cleanupError);
             }
-        };
-
-        this._settings.onKeybindingsChanged = () => {
-            if (this._isActive) this._keybindings.rebindAll();
+            throw e;
         }
-
-        this._applyCustomLayouts();
     }
 
-    _applyCustomLayouts() {
-        if (!this._settings || !this._controller) return false;
-        const customJson = this._settings.getCustomLayouts();
-        let escalator = null;
+    _enable() {
+        Logger.info(`Enabling ${this.metadata.name} ${this.metadata['version-name'] ?? ''} on GNOME Shell ${Config.PACKAGE_VERSION}`);
+        this._settings = this.getSettings();
+        this._configSource = new GSettingsConfigSource(this._settings);
+        this._configSource.onConfigChanged((config) => this._onConfigChanged(config));
+        this._configSource.onConfigInvalid((error) => this._suspend(error));
+        this._buttonHider = new MaximizeButtonHider(this._settings);
+        this._buttonHider.enable();
 
-        try {
-            escalator = LayoutParser.parse(customJson);
-            if (!escalator) throw new Error("Parsed layout is empty.");
-        } catch (e) {
-            Logger.error(`Invalid custom layouts JSON: ${e.message}`);
-            Main.notifyError('Workflow Tiling', `Invalid layouts JSON. Suspending extension.\n${e.message}`);
-            if (this._isActive) {
-                this._signals.unbind();
-                this._keybindings.unbindAll();
-                this._controller.clear();
-                this._isActive = false;
-                this._wasSuspended = true;
-            }
-            return false;
-        }
+        this._displayPort = new MutterDisplayPort();
+        this._windowPort = new MutterWindowPort(this._displayPort, Number(Config.PACKAGE_VERSION.split('.')[0]));
+        this._indicator = new StIndicator();
 
-        this._controller.setEscalator(escalator);
+        this._sessionModeId = Main.sessionMode.connect('updated', () => this._applySessionMode());
 
-        if (!this._isActive) {
-            this._signals.bind();
-            this._keybindings.bindAll();
-            this._isActive = true;
-            if (this._wasSuspended) {
-                Main.notify('Workflow Tiling', 'Valid layout provided. Extension resumed.');
-                this._wasSuspended = false;
-            }
-        }
-        return true;
+        if (this._configSource.isValid()) this._start();
+        else this._suspend(this._configSource.error);
     }
 
+    // The extension also runs in the `unlock-dialog` session mode: tiling state (slot order, overrides, evacuated
+    // windows) must survive the lock screen and suspend, and monitor changes while locked (undocking with the lid
+    // closed) must be handled. While locked only the keybindings are switched off. disable() cleans up
+    // unconditionally.
     disable() {
         Logger.info(`Disabling ${this.metadata.name}`);
-        if (this._isActive) {
-            this._signals.unbind();
-            this._keybindings.unbindAll();
-        }
-        if (this._settings) this._settings.destroy();
-        if (this._controller) this._controller.clear();
-        this._signals = null;
-        this._keybindings = null;
-        this._settings = null;
-        this._controller = null;
-        this._isActive = false;
-        this._wasSuspended = false;
+        if (this._sessionModeId) Main.sessionMode.disconnect(this._sessionModeId);
+        this._sessionModeId = 0;
 
-        if (this._wmSettings) {
-            try {
-                let layout = this._wmSettings.get_string('button-layout');
-                if (!layout.includes('maximize')) {
-                    if (layout.includes('minimize,close')) {
-                        layout = layout.replace('minimize,close', 'minimize,maximize,close');
-                    } else if (layout.includes('close')) {
-                        layout = layout.replace('close', 'maximize,close');
-                    } else {
-                        layout += ',maximize';
-                    }
-                    this._wmSettings.set_string('button-layout', layout);
-                    Gio.Settings.sync();
-                }
-            } catch (e) {
-                Logger.error('Failed to restore maximize button', e);
-            }
-            this._wmSettings = null;
+        this._firstRunHint?.destroy();
+        this._keybindings?.destroy();
+        this._events?.unbind();
+        this._engine?.destroy();
+        this._indicator?.destroy();
+        this._windowPort?.destroy();
+        this._displayPort?.destroy();
+        this._configSource?.destroy();
+        this._buttonHider?.disable();
+
+        this._keybindings = null;
+        this._events = null;
+        this._engine = null;
+        this._indicator = null;
+        this._windowPort = null;
+        this._displayPort = null;
+        this._configSource = null;
+        this._buttonHider = null;
+        this._firstRunHint = null;
+        this._settings = null;
+        this._suspended = false;
+    }
+
+    _start() {
+        this._engine = new Engine({
+            windowPort: this._windowPort,
+            displayPort: this._displayPort,
+            indicator: this._indicator,
+            config: this._configSource.current(),
+        });
+        this._events = new ShellEvents({
+            windowPort: this._windowPort,
+            displayPort: this._displayPort,
+            engine: this._engine,
+        });
+        this._events.bind();
+        this._engine.resync(this._windowPort.all());
+
+        this._keybindings = new KeybindingAdapter({
+            settings: this._settings,
+            engine: this._engine,
+            windowPort: this._windowPort,
+        });
+        this._suspended = false;
+        this._applySessionMode();
+    }
+
+    _onConfigChanged(config) {
+        if (!this._engine) {
+            this._start();
+            Logger.info('Valid layout JSON provided; tiling started');
+            Main.notify('Workflow Tiling', 'Valid layout provided. Tiling resumed.');
+        } else if (this._suspended) {
+            this._resume(config);
+        } else {
+            this._engine.applyConfig(config);
         }
+    }
+
+    _suspend(error) {
+        if (this._suspended) return;
+        this._suspended = true;
+        Logger.error(`Invalid custom layouts JSON: ${error}`);
+        Main.notifyError('Workflow Tiling', `Invalid layouts JSON. Tiling suspended.\n${error}`);
+
+        this._events?.unbind();
+        this._keybindings?.unbind();
+        this._engine?.suspend();
+    }
+
+    _resume(config) {
+        this._suspended = false;
+        this._engine.applyConfig(config);
+        this._events.bind();
+        this._engine.resync(this._windowPort.all());
+        this._applySessionMode();
+        Logger.info('Valid layout JSON provided; tiling resumed');
+        Main.notify('Workflow Tiling', 'Valid layout provided. Tiling resumed.');
+    }
+
+    /** Keybindings are switched off while the screen is locked and while suspended. */
+    _applySessionMode() {
+        if (!this._keybindings) return;
+        Logger.debug(`Extension: session mode ${Main.sessionMode.currentMode}, locked ${Main.sessionMode.isLocked}`);
+        if (Main.sessionMode.isLocked || this._suspended) {
+            this._keybindings.unbind();
+            return;
+        }
+        this._keybindings.bind();
+        this._showFirstRunHint();
+    }
+
+    /**
+     * Once per install, while tiling runs unlocked: tells that moving and focusing windows has no shortcuts until a
+     * mode other than None is chosen. Not shown when the user already uses one.
+     */
+    _showFirstRunHint() {
+        if (this._settings.get_boolean('first-run-hint-shown')) return;
+        // Set on the first check either way: choosing None later is a decision, not a first run
+        this._settings.set_boolean('first-run-hint-shown', true);
+        if (hasDirectionalShortcuts(this._settings)) return;
+
+        const source = MessageTray.getSystemSource();
+        const notification = new MessageTray.Notification({
+            source,
+            title: 'Workflow Tiling',
+            body: 'Moving and focusing windows has no keyboard shortcuts yet. Choose a mode in the settings.',
+        });
+        notification.addAction('Open Settings', () => this.openPreferences());
+        // Kept so disable() can remove it: its action holds this extension
+        notification.connect('destroy', () => (this._firstRunHint = null));
+        this._firstRunHint = notification;
+        source.addNotification(notification);
     }
 }

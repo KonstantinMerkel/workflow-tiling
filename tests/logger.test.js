@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger } from '../lib/logger.js';
+import { Logger } from '../lib/utils/logger.js';
 
 describe('Logger', () => {
     let originalConsole;
@@ -22,7 +22,11 @@ describe('Logger', () => {
         console.warn = originalConsole.warn;
         console.error = originalConsole.error;
         console.debug = originalConsole.debug;
-        Logger.DEBUG = true;
+        Logger.DEBUG = false;
+    });
+
+    it('should default DEBUG to false', () => {
+        expect(Logger.DEBUG).toBe(false);
     });
 
     it('should log info', () => {
@@ -68,5 +72,41 @@ describe('Logger', () => {
         Logger.DEBUG = false;
         Logger.debug('test debug');
         expect(console.log).not.toHaveBeenCalledWith('WorkflowTiling: [DEBUG] test debug');
+    });
+});
+
+describe('GSettingsConfigSource debug logging sync', () => {
+    it('should update Logger.DEBUG based on settings', async () => {
+        const { GSettingsConfigSource } = await import('../lib/shell/config-source.js');
+        const listeners = {};
+        const mockSettings = {
+            'enable-gaps': false,
+            'debug-logging': false,
+            'custom-layouts': '{"1":[{"x":0,"y":0,"w":100,"h":100,"id":0}]}',
+        };
+        const settings = {
+            get_boolean: (key) => mockSettings[key] ?? false,
+            get_int: () => 0,
+            get_string: (key) => mockSettings[key] ?? '',
+            get_strv: () => [],
+            connect: (signal, cb) => {
+                listeners[signal] = cb;
+                return signal;
+            },
+            disconnect: vi.fn(),
+        };
+
+        const source = new GSettingsConfigSource(settings);
+        expect(Logger.DEBUG).toBe(false);
+
+        mockSettings['debug-logging'] = true;
+        listeners['changed::debug-logging']();
+        expect(Logger.DEBUG).toBe(true);
+
+        mockSettings['debug-logging'] = false;
+        listeners['changed::debug-logging']();
+        expect(Logger.DEBUG).toBe(false);
+
+        source.destroy();
     });
 });
