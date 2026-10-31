@@ -61,7 +61,7 @@ describe('Preferences window', () => {
         policyRow.selected = 0;
         policyRow.emit('notify::selected');
         expect(mockSettingsStore['hotplug-policy']).toBe('restore-by-monitor');
-        expect(policyRow.subtitle).toContain('return when it is reconnected');
+        expect(policyRow.subtitle).toContain('return to their monitor');
     });
 
     it('should place Gaps, Monitor Change Policy and Debug groups in General page', () => {

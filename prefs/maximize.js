@@ -10,7 +10,7 @@ const SELF_MAXIMIZE_MODES = [
     {
         value: 'all-except-listed',
         label: 'All except listed apps',
-        subtitle: 'Every app may maximize itself, except those in the list below',
+        subtitle: 'Every app except those listed below',
     },
 ];
 

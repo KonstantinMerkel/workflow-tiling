@@ -22,7 +22,7 @@ export function addLayoutPages(window, settings, connections) {
     const advancedGroup = new Adw.PreferencesGroup();
     const jsonToggle = new Adw.SwitchRow({
         title: 'Edit Base JSON Instead',
-        subtitle: 'Only if you know what you are doing. This will not save you from bad decisions',
+        subtitle: 'For experts only, no safety net',
     });
 
     settings.bind('show-advanced-json', jsonToggle, 'active', Gio.SettingsBindFlags.DEFAULT);

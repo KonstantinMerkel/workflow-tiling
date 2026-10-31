@@ -8,15 +8,13 @@ import { choiceRow } from './rows.js';
 const HOTPLUG_POLICIES = [
     {
         value: 'restore-by-monitor',
-        label: 'Windows stay with their monitor',
-        subtitle: 'Windows of a disconnected monitor are minimized and return when it is reconnected',
+        label: 'Physical prevails',
+        subtitle: 'Windows return to their monitor when it reconnects',
     },
     {
         value: 'follow-primary',
-        label: 'Windows follow the primary monitor',
-        subtitle:
-            'The primary monitor\'s windows move to the new primary; its own windows are minimized ' +
-            'until it is secondary again',
+        label: 'Primary prevails',
+        subtitle: 'Primary monitor windows move to the new primary',
     },
 ];
 
