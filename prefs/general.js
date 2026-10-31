@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 import { Logger } from '../lib/utils/logger.js';
-import { choiceRow, pageListener } from './rows.js';
+import { choiceRow } from './rows.js';
 
 const HOTPLUG_POLICIES = [
     {
@@ -21,9 +21,9 @@ const HOTPLUG_POLICIES = [
 ];
 
 /** Preferences page for gaps, monitor changes and debugging. */
-export function buildGeneralPage(settings) {
+export function buildGeneralPage(settings, connections) {
     const page = new Adw.PreferencesPage({ title: 'General', icon_name: 'preferences-system-symbolic' });
-    const listen = pageListener(page, settings);
+    const listen = connections.listener(settings);
 
     // --- Gaps Group ---
     const gapsGroup = new Adw.PreferencesGroup({ title: 'Gaps' });

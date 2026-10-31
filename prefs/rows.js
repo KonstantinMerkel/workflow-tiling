@@ -11,14 +11,39 @@ const INFO_CSS = `
 let infoStyleLoaded = false;
 
 /**
- * Settings listener tied to a page: everything connected through it is disconnected when the page is destroyed, so
- * handlers never run on the widgets of a closed preferences window.
- * @returns {(signal: string, callback: Function) => void}
+ * Connections to objects outside a preferences window (settings), all disconnected when the window closes. Its
+ * widgets are freed only when the prefs process exits, so a `destroy` handler or `vfunc_dispose` override never runs
+ * in time, and GJS blocks the override then.
  */
-export function pageListener(page, settings) {
-    const signalIds = [];
-    page.connect('destroy', () => signalIds.splice(0).forEach((id) => settings.disconnect(id)));
-    return (signal, callback) => signalIds.push(settings.connect(signal, callback));
+export class WindowConnections {
+    constructor(window) {
+        this._connections = [];
+        window.connect('close-request', () => {
+            this.disconnectAll();
+            return false;
+        });
+    }
+
+    /** @returns {*} the handler id, for `disconnect` or blocking it */
+    connect(object, signal, callback) {
+        const id = object.connect(signal, callback);
+        this._connections.push({ object, id });
+        return id;
+    }
+
+    disconnect(object, id) {
+        this._connections = this._connections.filter((c) => c.object !== object || c.id !== id);
+        object.disconnect(id);
+    }
+
+    disconnectAll() {
+        this._connections.splice(0).forEach(({ object, id }) => object.disconnect(id));
+    }
+
+    /** @returns {(signal: string, callback: Function) => void} connects to `object` until the window closes */
+    listener(object) {
+        return (signal, callback) => this.connect(object, signal, callback);
+    }
 }
 
 /** Rounded box with an info icon and `text`, to add to a group. */

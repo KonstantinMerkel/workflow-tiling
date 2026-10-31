@@ -5,7 +5,7 @@ import { LayoutParser } from '../lib/domain/layout/parser.js';
 
 export const LayoutEditorPage = GObject.registerClass(
     class EditorPage extends Adw.PreferencesPage {
-        _init(settings) {
+        _init(settings, connections) {
             super._init({ title: 'JSON', icon_name: 'text-x-generic-symbolic' });
             this.settings = settings;
 
@@ -26,7 +26,7 @@ export const LayoutEditorPage = GObject.registerClass(
             const jsonBuf = textView.get_buffer();
             jsonBuf.set_text(this.settings.get_string('custom-layouts') || '', -1);
 
-            this._changedId = this.settings.connect('changed::custom-layouts', () => {
+            connections.connect(settings, 'changed::custom-layouts', () => {
                 const cur = this.settings.get_string('custom-layouts') || '';
                 const displayed = jsonBuf.get_text(jsonBuf.get_start_iter(), jsonBuf.get_end_iter(), false);
                 if (cur !== displayed) {
@@ -64,14 +64,6 @@ export const LayoutEditorPage = GObject.registerClass(
                 if (error === null) this.settings.set_string('custom-layouts', text);
             });
             layoutGroup.add(saveButton);
-        }
-
-        vfunc_dispose() {
-            if (this._changedId) {
-                this.settings.disconnect(this._changedId);
-                this._changedId = null;
-            }
-            super.vfunc_dispose();
         }
     },
 );

@@ -7,14 +7,15 @@ import { LayoutEditorPage } from './editor.js';
  * Adds the visual layout editor page, and the JSON editor page while its advanced toggle is on.
  * @param {Adw.PreferencesWindow} window
  * @param {Gio.Settings} settings
+ * @param {WindowConnections} connections
  */
-export function addLayoutPages(window, settings) {
+export function addLayoutPages(window, settings, connections) {
     // --- Custom Layouts (JSON debug) Page ---
-    const layoutPage = new LayoutEditorPage(settings);
+    const layoutPage = new LayoutEditorPage(settings, connections);
     // Do not add to window yet.
 
     // --- Visual Layout Editor Page ---
-    const previewPage = new LayoutPreviewPage(settings);
+    const previewPage = new LayoutPreviewPage(settings, connections);
     window.add(previewPage);
 
     // --- Advanced JSON Toggle ---

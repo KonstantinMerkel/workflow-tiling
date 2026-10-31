@@ -430,7 +430,12 @@ describe('WorkflowTilingPreferences', () => {
 
         prefs = new WorkflowTilingPreferences();
         addedPages = [];
+        const closeHandlers = [];
         mockWindow = {
+            connect: vi.fn((signal, callback) => {
+                if (signal === 'close-request') closeHandlers.push(callback);
+            }),
+            close: () => closeHandlers.forEach((cb) => cb()),
             add: vi.fn((page) => {
                 addedPages.push(page);
             }),
@@ -492,9 +497,9 @@ describe('WorkflowTilingPreferences', () => {
             expect(allowed.rows).toEqual([]);
         });
 
-        it('disconnects its settings listeners when the page is destroyed', () => {
+        it('disconnects its settings listeners when the window closes', () => {
             const allowed = group('Allowed Apps');
-            page.emit('destroy');
+            mockWindow.close();
             mockSettings.set_strv('self-maximize-allow-list', ['firefox', 'org.gnome.epiphany']);
             expect(allowed.rows).toHaveLength(1);
         });
@@ -509,19 +514,16 @@ describe('WorkflowTilingPreferences', () => {
         });
     });
 
-    it('disconnects the General and Keyboard Shortcuts listeners when their pages are destroyed', () => {
+    it('disconnects every settings listener when the window closes', () => {
         prefs.fillPreferencesWindow(mockWindow);
-        const listeners = (key) => (mockListeners[`changed::${key}`] ?? []).length;
-        // a ShortcutRow keeps its own listener on its key; it is released in vfunc_dispose
-        const closeMonitorListeners = listeners('shortcut-close-monitor');
+        const listeners = () => Object.values(mockListeners).flat().length;
+        expect(listeners()).toBeGreaterThan(0);
+        expect(mockWindow.connect).toHaveBeenCalledWith('close-request', expect.any(Function));
 
-        addedPages.find(p => p.title === 'General').emit('destroy');
-        addedPages.find(p => p.title === 'Keyboard Shortcuts').emit('destroy');
+        mockWindow.close();
 
-        expect(listeners('enable-gaps')).toBe(0);
-        expect(listeners('focus-window-mode')).toBe(0);
-        expect(listeners('keybindings-mode')).toBe(0);
-        expect(listeners('shortcut-close-monitor')).toBe(closeMonitorListeners - 1);
+        expect(listeners()).toBe(0);
+        expect(gnomeListeners.size).toBe(0);
     });
 
     it('should store the monitor change policy chosen on the General page', () => {
@@ -745,7 +747,7 @@ describe('WorkflowTilingPreferences', () => {
             expect(rowOf('custom-move-window-left').warningIcon.visible).toBe(false);
         });
 
-        it('re-reads GNOME shortcuts when GNOME settings change, and stops when the page is gone', () => {
+        it('re-reads GNOME shortcuts when GNOME settings change, and stops when the window closes', () => {
             gnomeKeys.set('switch-to-workspace-left', ['<Super><Alt>Left']);
             mockSettingsStore['custom-move-window-left'] = ['<Alt><Super>Left'];
             custom();
@@ -757,7 +759,7 @@ describe('WorkflowTilingPreferences', () => {
             expect(rowOf('custom-move-window-left').warningIcon.visible).toBe(false);
             expect(gnomeListeners.size).toBe(1); // not rebuilt for an ordinary key
 
-            page.emit('destroy');
+            mockWindow.close();
             expect(gnomeListeners.size).toBe(0);
         });
 

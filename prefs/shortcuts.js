@@ -14,7 +14,7 @@ import {
 import { DIRECTIONS } from '../lib/domain/types.js';
 import { findConflicts, hasDirectionalShortcuts, normalizeAccelerator } from '../lib/utils/shortcuts.js';
 import { gnomeShortcutSettings, gnomeShortcuts } from '../lib/gio/gnome-shortcuts.js';
-import { bindChoice, infoBox, pageListener } from './rows.js';
+import { bindChoice, infoBox } from './rows.js';
 
 const ShortcutRowMixin = {
     _recordShortcut() {
@@ -85,7 +85,6 @@ const ShortcutRow = GObject.registerClass(
             this.settings = settings;
             this.keyName = keyName;
             this._keys = keys ?? (() => this.settings.get_strv(this.keyName));
-            this._onChangeCallback = null;
 
             if (origin) {
                 const badgeBox = new Gtk.Box({ orientation: 0, spacing: 4, valign: 3 }); // 0: HORIZONTAL, 3: CENTER
@@ -115,21 +114,6 @@ const ShortcutRow = GObject.registerClass(
             this.add_suffix(this.shortcutLabel);
             this.activatable = true;
             this.connect('activated', () => this._recordShortcut());
-
-            // Rows showing other keys than their setting's are refreshed by their owner instead
-            if (keys) return;
-            this._settingsChangedId = this.settings.connect(`changed::${this.keyName}`, () => {
-                this.shortcutLabel.accelerator = this._getAccelerator();
-                if (this._onChangeCallback) this._onChangeCallback();
-            });
-        }
-
-        vfunc_dispose() {
-            if (this._settingsChangedId && this.settings) {
-                this.settings.disconnect(this._settingsChangedId);
-                this._settingsChangedId = 0;
-            }
-            super.vfunc_dispose();
         }
 
         setWarning(isWarning, tooltip = '') {
@@ -137,15 +121,11 @@ const ShortcutRow = GObject.registerClass(
             this.warningIcon.tooltip_text = tooltip;
         }
 
-        setOnChange(cb) {
-            this._onChangeCallback = cb;
-        }
-
         _getAccelerator() {
             return this._keys()[0] ?? '';
         }
 
-        /** Shows the keys again, for rows whose keys do not come from their setting */
+        /** Shows the keys again; the page calls it when they change */
         refresh() {
             this.shortcutLabel.accelerator = this._getAccelerator();
         }
@@ -226,12 +206,12 @@ function modeRow(settings, modeKey, title, choices) {
 }
 
 /** Preferences page for the tiling shortcuts and the window-state shortcuts they share with GNOME. */
-export function buildShortcutsPage(settings) {
+export function buildShortcutsPage(settings, connections) {
     const shortcutsPage = new Adw.PreferencesPage({
         title: 'Keyboard Shortcuts',
         icon_name: 'input-keyboard-symbolic',
     });
-    const listen = pageListener(shortcutsPage, settings);
+    const listen = connections.listener(settings);
 
     const wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.keybindings' });
     const allRows = [];
@@ -243,17 +223,16 @@ export function buildShortcutsPage(settings) {
     let gnome = null;
     let watched = [];
     const watchGnome = () => {
-        watched.forEach(({ st, id }) => st.disconnect(id));
+        watched.forEach(({ st, id }) => connections.disconnect(st, id));
         watched = gnomeShortcutSettings().map((st) => ({
             st,
-            id: st.connect('changed', (_settings, key) => {
+            id: connections.connect(st, 'changed', (_settings, key) => {
                 gnome = null;
                 if (key === 'custom-keybindings') watchGnome(); // custom shortcuts added or removed
                 updateConflicts();
             }),
         }));
     };
-    shortcutsPage.connect('destroy', () => watched.splice(0).forEach(({ st, id }) => st.disconnect(id)));
 
     // A key is in conflict when anything else, ours or GNOME's, uses it; shortcuts inside apps are not known here
     const updateConflicts = () => {
@@ -284,7 +263,13 @@ export function buildShortcutsPage(settings) {
 
     const createRow = (st, id, label, origin = '', keys = null) => {
         const row = new ShortcutRow(st, id, label, origin, keys);
-        row.setOnChange(updateConflicts);
+        // Rows showing other keys than their setting's are refreshed with their mode instead
+        if (!keys) {
+            connections.connect(st, `changed::${id}`, () => {
+                row.refresh();
+                updateConflicts();
+            });
+        }
         allRows.push(row);
         return row;
     };

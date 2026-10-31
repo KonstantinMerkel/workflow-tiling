@@ -78,6 +78,18 @@ function drawLayout(cr, width, height, slots, highlight = -1) {
     return frame;
 }
 
+// Dashed line where slot `s` would be split at `pos` percent along `axis`.
+function drawCut(cr, frame, s, axis, pos) {
+    const at = Math.round(pos);
+    const [x1, y1, x2, y2] = axis === 'x' ? [at, s.y, at, s.y + s.h] : [s.x, at, s.x + s.w, at];
+    cr.setSourceRGBA(1, 1, 1, 0.8);
+    cr.setLineWidth(2);
+    cr.setDash([6, 4], 0);
+    cr.moveTo(frame.x + (frame.w * x1) / 100, frame.y + (frame.h * y1) / 100);
+    cr.lineTo(frame.x + (frame.w * x2) / 100, frame.y + (frame.h * y2) / 100);
+    cr.stroke();
+}
+
 function toPercent(frame, px, py) {
     return { x: ((px - frame.x) / frame.w) * 100, y: ((py - frame.y) / frame.h) * 100 };
 }
@@ -90,7 +102,7 @@ function arrow() {
 // as a draft: splits are picked by hand in a dialog, then refined by dragging cuts or by percentage.
 export const LayoutPreviewPage = GObject.registerClass(
     class PreviewPage extends Adw.PreferencesPage {
-        _init(settings) {
+        _init(settings, connections) {
             super._init({ title: 'Layout Editor', icon_name: 'view-grid-symbolic' });
             this.settings = settings;
             this._editing = null; // { count, slots } of the layout currently being edited
@@ -100,7 +112,7 @@ export const LayoutPreviewPage = GObject.registerClass(
             this._list = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, spacing: 12 });
             group.add(this._list);
 
-            this._changedId = this.settings.connect('changed::custom-layouts', () => {
+            this._changedId = connections.connect(settings, 'changed::custom-layouts', () => {
                 if (!this._editing) this._rebuild();
             });
             this._rebuild();
@@ -235,7 +247,10 @@ export const LayoutPreviewPage = GObject.registerClass(
                 margin_end: 8,
                 margin_bottom: 8,
             });
-            canvas.set_draw_func((_area, cr, w, h) => (frame = drawLayout(cr, w, h, slots)));
+            canvas.set_draw_func((_area, cr, w, h) => {
+                frame = drawLayout(cr, w, h, slots);
+                cr.$dispose(); // GJS frees a context only on GC, which does not see Cairo's memory
+            });
             card.append(canvas);
 
             if (editing) card.append(this._editPanel(count, slots, canvas, () => frame));
@@ -483,17 +498,8 @@ export const LayoutPreviewPage = GObject.registerClass(
             canvas.set_draw_func((_area, cr, w, h) => {
                 const k = hover ? slotAt(base, hover.x, hover.y) : -1;
                 frame = drawLayout(cr, w, h, base, k);
-                if (k < 0 || !splitSlot(base, k, axis, hover[axis])) return;
-
-                const s = base[k];
-                const at = Math.round(hover[axis]);
-                const [x1, y1, x2, y2] = axis === 'x' ? [at, s.y, at, s.y + s.h] : [s.x, at, s.x + s.w, at];
-                cr.setSourceRGBA(1, 1, 1, 0.8);
-                cr.setLineWidth(2);
-                cr.setDash([6, 4], 0);
-                cr.moveTo(frame.x + (frame.w * x1) / 100, frame.y + (frame.h * y1) / 100);
-                cr.lineTo(frame.x + (frame.w * x2) / 100, frame.y + (frame.h * y2) / 100);
-                cr.stroke();
+                if (k >= 0 && splitSlot(base, k, axis, hover[axis])) drawCut(cr, frame, base[k], axis, hover[axis]);
+                cr.$dispose();
             });
 
             const motion = new Gtk.EventControllerMotion();
@@ -521,14 +527,6 @@ export const LayoutPreviewPage = GObject.registerClass(
             root.append(content);
             dialog.set_content(root);
             dialog.present();
-        }
-
-        vfunc_dispose() {
-            if (this._changedId) {
-                this.settings.disconnect(this._changedId);
-                this._changedId = null;
-            }
-            super.vfunc_dispose();
         }
     },
 );
