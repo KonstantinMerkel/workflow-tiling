@@ -1,6 +1,6 @@
 UUID = $(shell grep -oP '"uuid":\s*"\K[^"]+' metadata.json)
 EXT_DIR = ~/.local/share/gnome-shell/extensions/$(UUID)
-FILES = extension.js metadata.json lib/ schemas/ prefs.js
+FILES = extension.js metadata.json lib prefs schemas prefs.js
 
 .PHONY: all sync install uninstall test pack enable disable clean reminder do_sync do_enable compile-schemas
 
@@ -20,7 +20,7 @@ sync: compile-schemas do_sync reminder
 
 do_sync:
 	mkdir -p $(EXT_DIR)
-	cp -r $(FILES) $(EXT_DIR)/
+	rsync -a --delete $(FILES) $(EXT_DIR)/
 
 install: compile-schemas do_sync
 	@echo ""
@@ -30,10 +30,13 @@ install: compile-schemas do_sync
 	@echo ""
 
 test:
-	npm test
+	npm test && npx eslint .
 
-pack: compile-schemas
-	zip -r extension.zip $(FILES)
+# GNOME 44+ compiles the schema on install: the zip ships only the XML. Rebuilt from scratch, since zip -r adds
+# to an existing archive and would keep files that were deleted from the source tree.
+pack:
+	rm -f extension.zip
+	zip -r extension.zip $(FILES) -x schemas/gschemas.compiled
 
 enable: do_enable reminder
 
