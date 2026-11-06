@@ -26,7 +26,7 @@ Tiled windows keep their tile while maximized or fullscreen. Settings → Maximi
 GNOME's maximize shortcuts (Super+Up and Super+Down by default) toggle the maximization in the tile and end it. Only full maximizing and fullscreen are supported, not maximizing to one half of the screen. Dropping a dragged window on the top screen edge maximizes it in its tile.
 
 ## Requirements
-GNOME Shell 49 or 50.
+GNOME Shell 49, 50 or 51.
 
 ## Contributing
 See [CONTRIBUTING.md](CONTRIBUTING.md).

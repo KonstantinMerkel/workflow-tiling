@@ -5,7 +5,8 @@
   "url": "https://github.com/KonstantinMerkel/workflow-tiling/",
   "shell-version": [
     "49",
-    "50"
+    "50",
+    "51"
   ],
   "version-name": "0.2.0 beta",
   "session-modes": [
