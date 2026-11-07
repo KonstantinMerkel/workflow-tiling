@@ -53,16 +53,19 @@ export default class WorkflowTilingExtension extends Extension {
         else this._suspend(this._configSource.error);
     }
 
-    // The extension also runs in the `unlock-dialog` session mode: tiling state (slot order, overrides, evacuated
-    // windows) must survive the lock screen and suspend, and monitor changes while locked (undocking with the lid
-    // closed) must be handled. While locked only the keybindings are switched off. disable() cleans up
-    // unconditionally.
     disable() {
+        // The extension also runs in the `unlock-dialog` session mode: tiling state (slot order, overrides, evacuated
+        // windows) must survive the lock screen and suspend, and monitor changes while locked (undocking with the lid
+        // closed) must be handled. While locked only the keybindings are switched off. disable() cleans up
+        // unconditionally.
         Logger.info(`Disabling ${this.metadata.name}`);
         if (this._sessionModeId) Main.sessionMode.disconnect(this._sessionModeId);
         this._sessionModeId = 0;
 
-        this._firstRunHint?.destroy();
+        if (this._firstRunHint) {
+            this._firstRunHint.disconnect(this._firstRunHintDestroyId);
+            this._firstRunHint.destroy();
+        }
         this._keybindings?.destroy();
         this._events?.unbind();
         this._engine?.destroy();
@@ -81,6 +84,7 @@ export default class WorkflowTilingExtension extends Extension {
         this._configSource = null;
         this._buttonHider = null;
         this._firstRunHint = null;
+        this._firstRunHintDestroyId = 0;
         this._settings = null;
         this._suspended = false;
     }
@@ -171,8 +175,11 @@ export default class WorkflowTilingExtension extends Extension {
             body: 'Moving and focusing windows has no keyboard shortcuts yet. Choose a mode in the settings.',
         });
         notification.addAction('Open Settings', () => this.openPreferences());
-        // Kept so disable() can remove it: its action holds this extension
-        notification.connect('destroy', () => (this._firstRunHint = null));
+        // Kept so disable() can remove it: its action holds this extension. Dismissing it clears the reference.
+        this._firstRunHintDestroyId = notification.connect('destroy', () => {
+            this._firstRunHint = null;
+            this._firstRunHintDestroyId = 0;
+        });
         this._firstRunHint = notification;
         source.addNotification(notification);
     }
